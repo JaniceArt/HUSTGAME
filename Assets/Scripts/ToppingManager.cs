@@ -24,6 +24,7 @@ public class ToppingManager : MonoBehaviour
     public float eggCookTime = 5f;
     public bool EggIsReady   => eggIsReady;
     public bool IsBoxClosed  => isBoxClosed;
+    public bool isHoldingFood { get; private set; } // Nhân vật đang cầm đồ ăn
 
     // Public getters để InteractionSystem kiểm tra
     public bool HasFoamBox  => hasFoamBox;
@@ -35,9 +36,20 @@ public class ToppingManager : MonoBehaviour
     public bool HasEgg      => hasEgg;
 
     [Header("=== CHILD OBJECTS CỦA foamboxtopping ===")]
-    [Tooltip("Kéo vào đây tất cả parts của hộp xốp (hop, nap...)")]
+    [Tooltip("Kéo vào đây tất cả parts của hộp xốp MỞ (hop, nap...)")]
     public GameObject[] foamBoxObjects;
 
+    [Tooltip("Object đại diện cho hộp xốp ĐÃ ĐÓNG NẮP (ẩn lúc đầu) TRÊN BÀN")]
+    public GameObject closedBoxObject;
+
+    [Header("=== CẦM TRÊN TAY ===")]
+    [SerializeField, Tooltip("Object hộp xôi đã xếp khít trên tay (ẩn đi lúc đầu)")]
+    private GameObject heldFoodInHand;
+
+    [SerializeField, Tooltip("Prefab dùng để ném xuống đất khi bấm Chuột Trái (nếu cần)")]
+    private GameObject droppedFoodPrefab;
+
+    [Header("=== CÁC MÓN TOPPING === ")]
     [Tooltip("Child object đại diện xôi trên hộp")]
     public GameObject riceOnBox;
 
@@ -73,6 +85,7 @@ public class ToppingManager : MonoBehaviour
 
         // Ẩn tất cả lúc khởi đầu
         SetActiveArray(foamBoxObjects, false);
+        SetActive(closedBoxObject,     false);
         SetActive(riceOnBox,           false);
         SetActive(pateOnBox,           false);
         SetActive(sausageOnBox,        false);
@@ -181,9 +194,105 @@ public class ToppingManager : MonoBehaviour
     public void CloseBox()
     {
         isBoxClosed = true;
-        // Hiện nắp hộp (nap) - nếu bạn muốn animation đóng hộp
-        // SetActive(napObject, true);
-        Debug.Log("[Topping] Đã đóng hộp xốp!");
+        
+        // Ẩn hộp mở và toàn bộ topping bên trong trên bàn
+        SetActiveArray(foamBoxObjects, false);
+        SetActive(riceOnBox,           false);
+        SetActive(pateOnBox,           false);
+        SetActive(sausageOnBox,        false);
+        SetActiveArray(cucumberOnBox,  false);
+        SetActive(ketchupOnBox,        false);
+        SetActive(eggOnBox,            false);
+
+        // HIỆN HỘP ĐÓNG TRÊN BÀN (Chưa nhặt lên)
+        SetActive(closedBoxObject, true);
+
+        Debug.Log("[Topping] Đã đóng hộp xốp để trên bàn! Bấm E để nhặt.");
+    }
+
+    /// <summary>Bấm E để nhặt hộp xôi đã đóng lên tay</summary>
+    public void PickUpFood()
+    {
+        if (!isBoxClosed || isHoldingFood) return;
+
+        isHoldingFood = true;
+
+        // Ẩn hộp trên bàn
+        SetActive(closedBoxObject, false);
+
+        // BẬT HỘP XÔI TRÊN TAY LÊN
+        if (heldFoodInHand != null)
+        {
+            heldFoodInHand.SetActive(true);
+        }
+
+        Debug.Log("[Topping] Đã nhặt hộp xôi lên tay!");
+    }
+
+    /// <summary>Giao hộp xôi cho khách</summary>
+    public void DeliverFood()
+    {
+        isHoldingFood = false;
+        
+        if (heldFoodInHand != null)
+        {
+            heldFoodInHand.SetActive(false);
+        }
+        
+        // Reset lại trạng thái bếp để làm hộp mới
+        hasFoamBox = false;
+        hasRice = false;
+        hasPate = false;
+        hasSausage = false;
+        hasCucumber = false;
+        hasKetchup = false;
+        hasEgg = false;
+        eggOnPan = false;
+        eggIsReady = false;
+        isBoxClosed = false;
+        eggCookTimer = 0f;
+
+        Debug.Log("[Topping] Giao xôi thành công! Bếp đã được reset.");
+    }
+
+    /// <summary>Vứt hộp xôi đang cầm xuống đất</summary>
+    public void DropFood()
+    {
+        if (!isHoldingFood) return;
+
+        isHoldingFood = false;
+
+        // Ẩn cục xôi trên tay
+        if (heldFoodInHand != null)
+        {
+            heldFoodInHand.SetActive(false);
+        }
+
+        // Đẻ ra một cục xôi rơi lạch cạch xuống đất
+        if (droppedFoodPrefab != null && Camera.main != null)
+        {
+            GameObject drop = Instantiate(droppedFoodPrefab, Camera.main.transform.position + Camera.main.transform.forward * 0.5f, Quaternion.identity);
+            Rigidbody rb = drop.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                rb.AddForce(Camera.main.transform.forward * 3f + Vector3.up * 1f, ForceMode.Impulse);
+            }
+        }
+
+        // Reset lại trạng thái bếp để làm hộp mới
+        hasFoamBox = false;
+        hasRice = false;
+        hasPate = false;
+        hasSausage = false;
+        hasCucumber = false;
+        hasKetchup = false;
+        hasEgg = false;
+        eggOnPan = false;
+        eggIsReady = false;
+        isBoxClosed = false;
+        eggCookTimer = 0f;
+
+        Debug.Log("[Topping] Đã vứt hộp xôi!");
     }
 
     // ---------------------- Helpers ----------------------

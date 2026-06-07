@@ -45,16 +45,26 @@ public class FirstPersonController : MonoBehaviour
 
     private void OnDisable()
     {
-        inputActions.Player.Disable();
+        if (inputActions != null)
+            inputActions.Player.Disable();
     }
+
+    public static bool CanMove = true;
 
     void Update()
     {
+        if (!CanMove) return;
         HandleMouseLook();
     }
 
     void FixedUpdate()
     {
+        if (!CanMove)
+        {
+            // Dừng nhân vật lại khi đang mở UI
+            rb.linearVelocity = new Vector3(0, rb.linearVelocity.y, 0);
+            return;
+        }
         HandleMovement();
     }
 

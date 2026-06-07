@@ -11,7 +11,11 @@ public enum InteractableType
     CucumberBowl,   // CucumberBowl - bước 4c
     KetchupBox,     // KetchupBox - bước 4d
     CloseBox,       // foamboxtopping - giữ E 2s để đóng hộp
-    SlidingDoor    // cửa kéo - bấm E để mở/đóng
+    SlidingDoor,    // cửa kéo - bấm E để mở/đóng
+    Printer,        // máy in - bấm E mở PrintCanvas
+    PrintedPaper,   // tờ giấy 3D - giữ E 5s để đóng gói
+    PackedPaperOnTable, // giấy đã đóng gói nằm trên bàn
+    Customer        // khách hàng - bấm E để giao đồ
 }
 
 [RequireComponent(typeof(Collider))]

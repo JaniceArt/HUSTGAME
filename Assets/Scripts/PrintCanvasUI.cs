@@ -1,0 +1,188 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using UnityEngine.InputSystem;
+
+/// <summary>
+/// Gắn lên GameObject "PrintCanvas" (UI Canvas).
+/// Quản lý toàn bộ logic và giao diện của màn hình in.
+/// </summary>
+public class PrintCanvasUI : MonoBehaviour
+{
+    [Header("=== CANVAS ===")]
+    [SerializeField, Tooltip("Chính Canvas này (để tự ẩn/hiện)")]
+    private GameObject printCanvas;
+
+    [Header("=== CHỌN MÀU (Exclusive Toggle) ===")]
+    [SerializeField, Tooltip("Button hoặc Toggle: In Màu")]
+    private Button colorButton;
+
+    [SerializeField, Tooltip("Button hoặc Toggle: In Đen Trắng")]
+    private Button bwButton;
+
+    [SerializeField, Tooltip("Image nền của nút In Màu (để đổi màu khi chọn)")]
+    private Image colorButtonBg;
+
+    [SerializeField, Tooltip("Image nền của nút In Đen Trắng (để đổi màu khi chọn)")]
+    private Image bwButtonBg;
+
+    [Header("=== SỐ LƯỢNG ===")]
+    [SerializeField, Tooltip("Text hiển thị số lượng bản in")]
+    private TextMeshProUGUI quantityText;
+
+    [SerializeField, Tooltip("Button tăng số lượng [+]")]
+    private Button plusButton;
+
+    [SerializeField, Tooltip("Button giảm số lượng [-]")]
+    private Button minusButton;
+
+    [Header("=== NÚT IN ===")]
+    [SerializeField, Tooltip("Button [PRINT] để thực thi in")]
+    private Button printButton;
+
+    [Header("=== SPAWN GiẤY 3D ===")]
+    [SerializeField, Tooltip("Prefab tờ giấy 3D (sẽ Instantiate khi in)")]
+    private GameObject paperPrefab;
+
+    [SerializeField, Tooltip("Vị trí spawn giấy (Transform ở khay máy in)")]
+    private Transform spawnPoint;
+
+    // --- State ---
+    private bool isColor = true;    // Mặc định chọn In Màu
+    private int quantity = 1;       // Mặc định 1 bản
+    private const int MIN_QTY = 1;
+    private const int MAX_QTY = 99;
+
+    // Màu để phân biệt nút đang chọn / không chọn
+    private Color selectedColor   = new Color(0.3f, 0.8f, 0.4f, 1f);  // Xanh lá
+    private Color unselectedColor = new Color(0.4f, 0.4f, 0.4f, 1f);  // Xám
+
+    // -------------------------------------------------------
+
+    void Start()
+    {
+        // Gán sự kiện cho các nút
+        if (colorButton != null) colorButton.onClick.AddListener(SelectColor);
+        if (bwButton    != null) bwButton.onClick.AddListener(SelectBW);
+        if (plusButton  != null) plusButton.onClick.AddListener(IncreaseQuantity);
+        if (minusButton != null) minusButton.onClick.AddListener(DecreaseQuantity);
+        if (printButton != null) printButton.onClick.AddListener(OnPrintPressed);
+
+        // Cập nhật UI ban đầu
+        UpdateToggleVisuals();
+        UpdateQuantityText();
+
+        // Ẩn canvas lúc đầu
+        if (printCanvas != null)
+            printCanvas.SetActive(false);
+    }
+
+    // ===================== TOGGLE MÀU =====================
+
+    void SelectColor()
+    {
+        isColor = true;
+        UpdateToggleVisuals();
+        Debug.Log("[Printer] Chọn: In Màu");
+    }
+
+    void SelectBW()
+    {
+        isColor = false;
+        UpdateToggleVisuals();
+        Debug.Log("[Printer] Chọn: In Đen Trắng");
+    }
+
+    void UpdateToggleVisuals()
+    {
+        if (colorButtonBg != null)
+            colorButtonBg.color = isColor ? selectedColor : unselectedColor;
+        if (bwButtonBg != null)
+            bwButtonBg.color = isColor ? unselectedColor : selectedColor;
+    }
+
+    // ===================== SỐ LƯỢNG =====================
+
+    void IncreaseQuantity()
+    {
+        quantity = Mathf.Min(quantity + 1, MAX_QTY);
+        UpdateQuantityText();
+    }
+
+    void DecreaseQuantity()
+    {
+        quantity = Mathf.Max(quantity - 1, MIN_QTY);
+        UpdateQuantityText();
+    }
+
+    void UpdateQuantityText()
+    {
+        if (quantityText != null)
+            quantityText.text = quantity.ToString();
+    }
+
+    // ===================== PRINT =====================
+
+    void OnPrintPressed()
+    {
+        // 1. Thông báo DocumentManager
+        if (DocumentManager.Instance != null)
+            DocumentManager.Instance.SetPrintSettings(isColor, quantity);
+
+        // 2. Spawn giấy 3D tại khay máy in
+        if (paperPrefab != null && spawnPoint != null)
+        {
+            GameObject paper = Instantiate(paperPrefab, spawnPoint.position, spawnPoint.rotation);
+            Debug.Log($"[Printer] Đã in {quantity} bản {(isColor ? "màu" : "đen trắng")} → giấy xuất hiện tại khay!");
+        }
+        else
+        {
+            Debug.LogWarning("[Printer] Chưa gán PaperPrefab hoặc SpawnPoint!");
+        }
+
+        // 3. Đóng PrintCanvas
+        ClosePrintCanvas();
+    }
+
+    // ===================== MỞ / ĐÓNG =====================
+
+    /// <summary>Mở PrintCanvas (gọi từ InteractionSystem khi bấm E vào máy in)</summary>
+    public void OpenPrintCanvas()
+    {
+        if (printCanvas != null)
+            printCanvas.SetActive(true);
+
+        // Hiện cursor để click UI và đóng băng player
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        FirstPersonController.CanMove = false;
+
+        // Reset số lượng về 1
+        quantity = 1;
+        UpdateQuantityText();
+    }
+
+    /// <summary>Đóng PrintCanvas</summary>
+    public void ClosePrintCanvas()
+    {
+        if (printCanvas != null)
+            printCanvas.SetActive(false);
+
+        // Khoá cursor lại cho FPS và cho phép di chuyển
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+        FirstPersonController.CanMove = true;
+    }
+
+    void Update()
+    {
+        // Nhấn ESC để thoát nếu đang mở
+        if (printCanvas != null && printCanvas.activeSelf)
+        {
+            if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+            {
+                ClosePrintCanvas();
+            }
+        }
+    }
+}
