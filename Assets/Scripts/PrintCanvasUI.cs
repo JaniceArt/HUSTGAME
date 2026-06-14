@@ -47,6 +47,14 @@ public class PrintCanvasUI : MonoBehaviour
     [SerializeField, Tooltip("Vị trí spawn giấy (Transform ở khay máy in)")]
     private Transform spawnPoint;
 
+    [Header("=== THỜI GIAN & ÂM THANH IN ===")]
+    [Tooltip("Máy in chạy mất bao lâu trước khi phọt giấy ra (giây)")]
+    public float printDuration = 2.0f;
+    public AudioClip printSound;
+    [Range(0f, 1f)] public float printVolume = 1f;
+    [Range(0.1f, 3f)] public float printPitch = 1f;
+    private AudioSource printAudioSource;
+
     // --- State ---
     private bool isColor = true;    // Mặc định chọn In Màu
     private int quantity = 1;       // Mặc định 1 bản
@@ -71,6 +79,10 @@ public class PrintCanvasUI : MonoBehaviour
         // Cập nhật UI ban đầu
         UpdateToggleVisuals();
         UpdateQuantityText();
+
+        printAudioSource = gameObject.AddComponent<AudioSource>();
+        printAudioSource.playOnAwake = false;
+        printAudioSource.loop = true;
 
         // Ẩn canvas lúc đầu
         if (printCanvas != null)
@@ -125,6 +137,28 @@ public class PrintCanvasUI : MonoBehaviour
 
     void OnPrintPressed()
     {
+        StartCoroutine(PrintRoutine());
+    }
+
+    System.Collections.IEnumerator PrintRoutine()
+    {
+        if (printButton != null) printButton.interactable = false;
+
+        // Bật tiếng máy in
+        if (printSound != null)
+        {
+            printAudioSource.clip = printSound;
+            printAudioSource.volume = printVolume;
+            printAudioSource.pitch = printPitch;
+            printAudioSource.Play();
+        }
+
+        // Chờ máy in chạy
+        yield return new WaitForSeconds(printDuration);
+
+        // Tắt tiếng
+        if (printAudioSource.isPlaying) printAudioSource.Stop();
+
         // 1. Thông báo DocumentManager
         if (DocumentManager.Instance != null)
             DocumentManager.Instance.SetPrintSettings(isColor, quantity);
@@ -132,7 +166,7 @@ public class PrintCanvasUI : MonoBehaviour
         // 2. Spawn giấy 3D tại khay máy in
         if (paperPrefab != null && spawnPoint != null)
         {
-            GameObject paper = Instantiate(paperPrefab, spawnPoint.position, spawnPoint.rotation);
+            Instantiate(paperPrefab, spawnPoint.position, spawnPoint.rotation);
             Debug.Log($"[Printer] Đã in {quantity} bản {(isColor ? "màu" : "đen trắng")} → giấy xuất hiện tại khay!");
         }
         else
@@ -140,7 +174,8 @@ public class PrintCanvasUI : MonoBehaviour
             Debug.LogWarning("[Printer] Chưa gán PaperPrefab hoặc SpawnPoint!");
         }
 
-        // 3. Đóng PrintCanvas
+        // 3. Đóng PrintCanvas và mở lại nút
+        if (printButton != null) printButton.interactable = true;
         ClosePrintCanvas();
     }
 
@@ -165,6 +200,13 @@ public class PrintCanvasUI : MonoBehaviour
     /// <summary>Đóng PrintCanvas</summary>
     public void ClosePrintCanvas()
     {
+        if (printAudioSource != null && printAudioSource.isPlaying)
+        {
+            printAudioSource.Stop();
+        }
+        StopAllCoroutines(); // Dừng tiến trình in nếu người chơi tắt ngang
+        if (printButton != null) printButton.interactable = true;
+
         if (printCanvas != null)
             printCanvas.SetActive(false);
 

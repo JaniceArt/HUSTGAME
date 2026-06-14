@@ -15,7 +15,11 @@ public enum InteractableType
     Printer,        // máy in - bấm E mở PrintCanvas
     PrintedPaper,   // tờ giấy 3D - giữ E 5s để đóng gói
     PackedPaperOnTable, // giấy đã đóng gói nằm trên bàn
-    Customer        // khách hàng - bấm E để giao đồ
+    Customer,       // khách hàng - bấm E để giao đồ
+    PaperAirplane,  // Máy bay giấy - nhặt lên để vứt
+    FridgeDoor,     // Cửa tủ lạnh - bấm E để xoay mở/đóng
+    Drink,          // Nước uống (Coke, Pepsi, Lavie)
+    TrashCan        // Thùng rác
 }
 
 [RequireComponent(typeof(Collider))]

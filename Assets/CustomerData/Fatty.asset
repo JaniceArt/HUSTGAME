@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9327c051a4f2bfc41b31569631c83a0e, type: 3}
+  m_Name: Fatty
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerData
+  customerName: HustBoy
+  dialogNodes:
+  - sentence: "3 x\xF4i \u0111\u1EA7y \u0111\u1EE7, 1 coca"
+    hasChoices: 1
+    choices:
+    - choiceText: "\u0102n nh\u01B0 l\u1EE3n v\u1EADy"
+      replyText: "C\xF3 b\xE1n kh\xF4ng??? nhanh k t \u0111i\xEAn l\xEAn"
+    - choiceText: "Oke g\xE1i "
+      replyText: "nhanh kh\xF4ng t \u0111i\xEAn l\xEA"
+  postDeliveryDialogNodes:
+  - sentence: "L\xE0m l\xE2u kinh kh\u1EE7ng"
+    hasChoices: 0
+    choices: []
+  wrongOrderDialog: "Sai r\u1ED3i!!"
+  playerReactionAfterReading: 
+  playerReactionAfterCustomerLeaves: "Hic s\u1EE3 qu\xE1 \u0111i m\u1EA5t"
+  delayBeforeReaction: 3
+  needsDocument: 0
+  documentImage: {fileID: 21300000, guid: beed18ef58443664f85ee29620bd56a3, type: 3}
+  requiresColor: 0
+  requiredCopies: 1
+  needsFood: 1
+  requiredFoodQuantity: 3
+  requiredToppings: 0100000004000000020000000300000000000000
+  walkingSound: {fileID: 8300000, guid: 9bb88a41eecfbd246824a354db1b43d6, type: 3}
+  walkingSoundVolume: 0.143
+  angrySound: {fileID: 8300000, guid: 8d54f926bc7118f4daddfa914da474ed, type: 3}
+  angrySoundVolume: 0.04
+  needsDrink: 1
+  requiredDrink: 1

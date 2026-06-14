@@ -1,0 +1,56 @@
+# ==========================================
+# HƯỚNG DẪN CÀI ĐẶT TỪ A-Z: HỆ THỐNG KỊCH BẢN
+# ==========================================
+
+Code đã xịn rồi, bây giờ bạn chỉ cần bình tĩnh làm theo đúng trình tự từ trên xuống dưới trong giao diện Unity là game sẽ chạy mượt như lụa!
+
+--- BƯỚC 1: DỌN DẸP ĐỒ CŨ ---
+1. Tìm trong cảnh (Scene) của bạn những cái cục tàng hình dùng để chứa script `CustomerZone` hồi xưa.
+2. Xóa sạch script `CustomerZone` đi (hoặc xóa luôn cái cục tàng hình đó cũng được, vì giờ ta không dùng vùng va chạm tàng hình nữa).
+3. Bấm vào file `CustomerData` của bạn, điền đủ thông tin: 
+   - Điền câu thoại vào "Dialog Lines" (Size = 2 -> Nhập câu 1, câu 2).
+   - Tích chọn "Needs Document" / "Needs Food".
+   - Bấm [+] ở Required Toppings để chèn Xúc Xích, Pate... vào nếu khách muốn ăn xôi.
+
+--- BƯỚC 2: TẠO QUẢN LÝ KỊCH BẢN ---
+1. Tại cửa sổ Hierarchy, click chuột phải -> Create Empty.
+2. Đổi tên nó thành "GameManager".
+3. Cầm script "SequenceManager.cs" kéo thả vào GameManager.
+4. Mặc định nó sẽ có 1 ô là "Start Automatically". 
+   - HÃY BỎ DẤU TÍCH NÀY ĐI! (Vì mình muốn phải "mở cửa" thì game mới chạy).
+
+--- BƯỚC 3: SETUP ĐƯỜNG ĐI CHO KHÁCH ---
+1. Tại cửa sổ Hierarchy, click chuột phải -> Create Empty. Đổi tên thành "DiemNgoaiDuong". Kéo cái cục rỗng này ra tít ngoài cửa.
+2. Tạo thêm một cái Create Empty nữa, đổi tên thành "DiemTruocQuay". Kéo nó vào sát quầy bán hàng.
+
+--- BƯỚC 4: SETUP DIỄN VIÊN (KHÁCH A & B) ---
+1. Kéo Model 3D Khách A vào cảnh.
+2. Đảm bảo Khách A có gắn Animator. Kéo thả các animation "đứng chờ" và "đi bộ" vào Animator, và đổi tên hai khối đó thành đúng chữ: "Idle" và "Walk".
+3. Kéo thả script "Customer.cs" vào Khách A.
+4. Nhìn sang Inspector của Khách A, cài đặt các ô trống:
+   - Customer Data: Kéo thả file Khach_01 vào.
+   - Animator: Kéo thả Animator của Khách A vào.
+   - Start Point: Kéo thả cái "DiemNgoaiDuong" vào.
+   - Counter Point: Kéo thả cái "DiemTruocQuay" vào.
+   - Chỉnh Walk Speed khoảng 2.5.
+5. QUAN TRỌNG: Tắt Khách A đi (Bấm bỏ dấu tích hình vuông trên cùng ở Inspector để Khách A bị ẩn/mờ đi).
+6. Làm y hệt các bước trên cho Khách B (Nhớ gắn data Khach_02 và cũng phải tắt ẩn Khách B đi).
+
+--- BƯỚC 5: SETUP MÁY BAY GIẤY ---
+1. Kéo cái model Máy bay giấy vào cảnh.
+2. Nó cũng phải có Animator (Có sẵn 1 cái animation bay lượn, ví dụ đặt tên là "FlyIn").
+3. Gắn script "PaperAirplaneStep.cs" vào máy bay.
+4. Ở Inspector:
+   - Kéo Animator vào.
+   - Chữ Fly In Animation: Gõ đúng tên clip animation bay của nó vào.
+5. QUAN TRỌNG: Tắt ẩn cái máy bay đi giống như Khách.
+
+--- BƯỚC 6: XẾP LỊCH TRÌNH VÀO GAME MANAGER ---
+1. Bấm lại vào cục "GameManager" (Ở Bước 2).
+2. Dưới dòng "Steps (List)", bấm dấu [+] 3 lần để tạo ra 3 chỗ trống.
+3. Kéo thả theo đúng thứ tự:
+   - Element 0: Kéo Khách A vào.
+   - Element 1: Kéo Máy Bay Giấy vào.
+   - Element 2: Kéo Khách B vào.
+
+XONG! Bây giờ bạn bấm Play Game. Lượn lờ trong phòng thoải mái. Đi ra bấm mở cái cửa lên. Vừa mở ra phát là Khách A lù lù đi bộ vào luôn!

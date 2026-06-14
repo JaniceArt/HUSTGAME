@@ -7,6 +7,12 @@ public class FirstPersonController : MonoBehaviour
     public float moveSpeed = 5f;
     [Header("Mouse Settings")]
     public float lookSensitivity = 2f;
+    [Header("Head Bob (Breathing) Settings")]
+    public float idleBobSpeed = 1.5f;   // Tốc độ nhịp thở
+    public float idleBobAmount = 0.03f; // Độ cao nhấp nhô
+
+    private float defaultCameraY = 0f;
+    private float timer = 0f;
 
     private Rigidbody rb;
     private Camera playerCamera;
@@ -22,6 +28,11 @@ public class FirstPersonController : MonoBehaviour
     {
         rb = GetComponent<Rigidbody>();
         playerCamera = GetComponentInChildren<Camera>();
+
+        if (playerCamera != null)
+        {
+            defaultCameraY = playerCamera.transform.localPosition.y;
+        }
 
         // Input Actions setup
         inputActions = new PlayerInputActions();
@@ -55,6 +66,25 @@ public class FirstPersonController : MonoBehaviour
     {
         if (!CanMove) return;
         HandleMouseLook();
+        HandleHeadBob();
+    }
+
+    void HandleHeadBob()
+    {
+        if (playerCamera == null) return;
+
+        // Tăng timer liên tục (Nhịp thở)
+        timer += Time.deltaTime * idleBobSpeed;
+        
+        // Tính toán vị trí Y mới bằng đồ thị hình Sin
+        float newY = defaultCameraY + Mathf.Sin(timer) * idleBobAmount;
+
+        // Cập nhật vị trí Camera
+        playerCamera.transform.localPosition = new Vector3(
+            playerCamera.transform.localPosition.x,
+            newY,
+            playerCamera.transform.localPosition.z
+        );
     }
 
     void FixedUpdate()

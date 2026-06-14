@@ -76,3 +76,7 @@ crashlytics-build.properties
 
 # Ignore Large Skybox Assets
 /[Aa]ssets/Real Stars Skybox/
+
+# Ignore Large Files > 100MB
+Assets/Audio/*.flac
+Assets/Stuff/Real Stars Skybox/

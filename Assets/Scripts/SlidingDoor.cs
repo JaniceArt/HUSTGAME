@@ -21,6 +21,9 @@ public class SlidingDoor : MonoBehaviour
     public AudioClip openSound;
     public AudioClip closeSound;
     [Range(0f, 1f)] public float volume = 0.8f;
+    
+    [Tooltip("Tốc độ phát âm thanh (Pitch). Tăng để âm thanh nhanh và thanh hơn, giảm để chậm và trầm hơn.")]
+    [Range(0.1f, 3f)] public float soundSpeed = 1f;
 
     public enum DoorAnchor { Left, Right }
 
@@ -85,6 +88,27 @@ public class SlidingDoor : MonoBehaviour
         if (_isMoving) return;
         _isOpen = !_isOpen;
         StartCoroutine(_isOpen ? CoOpen() : CoClose());
+
+        if (SequenceManager.Instance != null)
+        {
+            if (_isOpen && !SequenceManager.Instance.IsFinished)
+            {
+                // Mở cửa -> Hoàn thành nhiệm vụ "Mở cửa tiệm" và gọi khách đầu tiên
+                if (ObjectiveManager.Instance != null) ObjectiveManager.Instance.CompleteObjective();
+                SequenceManager.Instance.StartSequence();
+            }
+            else if (!_isOpen && SequenceManager.Instance.IsFinished)
+            {
+                // Đóng cửa khi đã hết khách -> Hoàn thành nhiệm vụ "Đóng cửa tiệm" và Load Ngày Mới
+                if (ObjectiveManager.Instance != null) ObjectiveManager.Instance.CompleteObjective();
+                
+                DayTransitionController dtc = Object.FindObjectOfType<DayTransitionController>();
+                if (dtc != null)
+                {
+                    dtc.gameObject.SetActive(true); // Đảm bảo nó được bật nếu bị tắt
+                }
+            }
+        }
     }
 
     // ── Coroutines ──────────────────────────────────
@@ -129,6 +153,10 @@ public class SlidingDoor : MonoBehaviour
 
     void PlaySound(AudioClip clip)
     {
-        if (clip != null) _sfx.PlayOneShot(clip, volume);
+        if (clip != null) 
+        {
+            _sfx.pitch = soundSpeed;
+            _sfx.PlayOneShot(clip, volume);
+        }
     }
 }

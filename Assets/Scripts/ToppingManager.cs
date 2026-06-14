@@ -25,6 +25,32 @@ public class ToppingManager : MonoBehaviour
     public bool EggIsReady   => eggIsReady;
     public bool IsBoxClosed  => isBoxClosed;
     public bool isHoldingFood { get; private set; } // Nhân vật đang cầm đồ ăn
+    public bool isHoldingWrongFood { get; private set; } // Đang cầm hộp xôi sai
+
+    [Header("=== TÍNH NĂNG ĂN XÔI === ")]
+    [Tooltip("UI hiển thị chữ: Bấm V để ăn")]
+    public GameObject eatTutorialUI;
+    
+    [Header("=== ÂM THANH NẤU NƯỚNG & ĂN UỐNG ===")]
+    [Tooltip("Nguồn phát âm thanh chung (AudioSource)")]
+    public AudioSource audioSource;
+    [Tooltip("Âm thanh nhai (Ăn xôi lỗi)")]
+    public AudioClip eatSound;
+
+    [Tooltip("Âm thanh lấy hộp xốp rỗng")]
+    public AudioClip takeBoxSound;
+    [Tooltip("Âm thanh múc xôi")]
+    public AudioClip scoopRiceSound;
+    [Tooltip("Âm thanh gắp Topping (Patê, Xúc xích, Dưa leo, Kết chúp, Trứng)")]
+    public AudioClip addToppingSound;
+    [Tooltip("Âm thanh đập trứng và chiên trên chảo (kêu liên tục đến khi chín)")]
+    public AudioClip crackEggSound;
+    [Tooltip("Âm thanh đóng nắp hộp xôi")]
+    public AudioClip closeBoxSound;
+    
+    [Range(0f, 1f)]
+    [Tooltip("Chỉnh âm lượng của các tiếng làm xôi (nhỏ bớt lại)")]
+    public float cookingSoundVolume = 0.4f;
 
     // Public getters để InteractionSystem kiểm tra
     public bool HasFoamBox  => hasFoamBox;
@@ -77,6 +103,8 @@ public class ToppingManager : MonoBehaviour
     [Tooltip("Object trứng ốp la trên chảo - ẩn lúc đầu")]
     public GameObject eggOnPanObject;
 
+    private AudioSource eggCookingAudioSource;
+
     // -------------------------------------------------------
 
     void Awake()
@@ -96,6 +124,11 @@ public class ToppingManager : MonoBehaviour
 
         // Đếm số trứng ban đầu trong hộp
         eggsRemaining = eggsInBox != null ? eggsInBox.Length : 0;
+
+        // Tạo AudioSource riêng cho tiếng chiên trứng
+        eggCookingAudioSource = gameObject.AddComponent<AudioSource>();
+        eggCookingAudioSource.playOnAwake = false;
+        eggCookingAudioSource.loop = true;
     }
 
     void Update()
@@ -107,8 +140,68 @@ public class ToppingManager : MonoBehaviour
             if (eggCookTimer >= eggCookTime)
             {
                 eggIsReady = true;
+                if (eggCookingAudioSource.isPlaying) eggCookingAudioSource.Stop();
                 Debug.Log("[Topping] Trứng đã chín! Bấm E để lấy.");
             }
+        }
+    }
+
+    // ===================== CƠ CHẾ ĂN XÔI LỖI =====================
+
+    public void MarkFoodAsWrong()
+    {
+        isHoldingWrongFood = true;
+        if (eatTutorialUI != null)
+        {
+            eatTutorialUI.SetActive(true); // Bật chữ hướng dẫn bấm V
+        }
+    }
+
+    public void EatFood()
+    {
+        if (!isHoldingFood) return;
+
+        isHoldingFood = false;
+        isHoldingWrongFood = false;
+
+        if (heldFoodInHand != null)
+        {
+            heldFoodInHand.SetActive(false); // Ẩn cục xôi trên tay
+        }
+
+        if (eatTutorialUI != null)
+        {
+            eatTutorialUI.SetActive(false); // Tắt chữ hướng dẫn
+        }
+
+        if (audioSource != null && eatSound != null)
+        {
+            audioSource.PlayOneShot(eatSound); // Phát tiếng nhai
+        }
+
+        ResetKitchenState();
+        Debug.Log("[Topping] Đã ăn hộp xôi!");
+    }
+
+    private void ResetKitchenState()
+    {
+        hasFoamBox = false;
+        hasRice = false;
+        hasPate = false;
+        hasSausage = false;
+        hasCucumber = false;
+        hasKetchup = false;
+        hasEgg = false;
+        eggOnPan = false;
+        eggIsReady = false;
+        isBoxClosed = false;
+        eggCookTimer = 0f;
+
+        SetActive(eggOnPanObject, false);
+
+        if (eggCookingAudioSource != null && eggCookingAudioSource.isPlaying)
+        {
+            eggCookingAudioSource.Stop();
         }
     }
 
@@ -119,6 +212,7 @@ public class ToppingManager : MonoBehaviour
     {
         hasFoamBox = true;
         SetActiveArray(foamBoxObjects, true);
+        if (audioSource != null && takeBoxSound != null) audioSource.PlayOneShot(takeBoxSound, cookingSoundVolume);
         Debug.Log("[Topping] Đã lấy hộp xốp!");
     }
 
@@ -127,6 +221,7 @@ public class ToppingManager : MonoBehaviour
     {
         hasRice = true;
         SetActive(riceOnBox, true);
+        if (audioSource != null && scoopRiceSound != null) audioSource.PlayOneShot(scoopRiceSound, cookingSoundVolume);
         Debug.Log("[Topping] Đã thêm xôi!");
     }
 
@@ -135,6 +230,7 @@ public class ToppingManager : MonoBehaviour
     {
         hasPate = true;
         SetActive(pateOnBox, true);
+        if (audioSource != null && addToppingSound != null) audioSource.PlayOneShot(addToppingSound, cookingSoundVolume);
         Debug.Log("[Topping] Đã thêm patê!");
     }
 
@@ -151,6 +247,15 @@ public class ToppingManager : MonoBehaviour
 
         eggOnPan = true;
         SetActive(eggOnPanObject, true);
+        
+        // Phát tiếng chiên trứng
+        if (crackEggSound != null)
+        {
+            eggCookingAudioSource.clip = crackEggSound;
+            eggCookingAudioSource.volume = cookingSoundVolume;
+            eggCookingAudioSource.Play();
+        }
+        
         Debug.Log("[Topping] Trứng đang rán trên chảo...");
     }
 
@@ -163,6 +268,8 @@ public class ToppingManager : MonoBehaviour
         hasEgg      = true;
         SetActive(eggOnPanObject, false);
         SetActive(eggOnBox,       true);
+        if (eggCookingAudioSource.isPlaying) eggCookingAudioSource.Stop(); // Đề phòng
+        if (audioSource != null && addToppingSound != null) audioSource.PlayOneShot(addToppingSound, cookingSoundVolume);
         Debug.Log("[Topping] Đã thêm trứng ốp la!");
     }
 
@@ -171,6 +278,7 @@ public class ToppingManager : MonoBehaviour
     {
         hasSausage = true;
         SetActive(sausageOnBox, true);
+        if (audioSource != null && addToppingSound != null) audioSource.PlayOneShot(addToppingSound, cookingSoundVolume);
         Debug.Log("[Topping] Đã thêm xúc xích!");
     }
 
@@ -179,6 +287,7 @@ public class ToppingManager : MonoBehaviour
     {
         hasCucumber = true;
         SetActiveArray(cucumberOnBox, true);
+        if (audioSource != null && addToppingSound != null) audioSource.PlayOneShot(addToppingSound, cookingSoundVolume);
         Debug.Log("[Topping] Đã thêm dưa leo!");
     }
 
@@ -187,6 +296,7 @@ public class ToppingManager : MonoBehaviour
     {
         hasKetchup = true;
         SetActive(ketchupOnBox, true);
+        if (audioSource != null && addToppingSound != null) audioSource.PlayOneShot(addToppingSound, cookingSoundVolume);
         Debug.Log("[Topping] Đã thêm kết chúp!");
     }
 
@@ -206,6 +316,8 @@ public class ToppingManager : MonoBehaviour
 
         // HIỆN HỘP ĐÓNG TRÊN BÀN (Chưa nhặt lên)
         SetActive(closedBoxObject, true);
+
+        if (audioSource != null && closeBoxSound != null) audioSource.PlayOneShot(closeBoxSound, cookingSoundVolume);
 
         Debug.Log("[Topping] Đã đóng hộp xốp để trên bàn! Bấm E để nhặt.");
     }
@@ -233,24 +345,19 @@ public class ToppingManager : MonoBehaviour
     public void DeliverFood()
     {
         isHoldingFood = false;
+        isHoldingWrongFood = false;
         
         if (heldFoodInHand != null)
         {
             heldFoodInHand.SetActive(false);
         }
+
+        if (eatTutorialUI != null)
+        {
+            eatTutorialUI.SetActive(false);
+        }
         
-        // Reset lại trạng thái bếp để làm hộp mới
-        hasFoamBox = false;
-        hasRice = false;
-        hasPate = false;
-        hasSausage = false;
-        hasCucumber = false;
-        hasKetchup = false;
-        hasEgg = false;
-        eggOnPan = false;
-        eggIsReady = false;
-        isBoxClosed = false;
-        eggCookTimer = 0f;
+        ResetKitchenState();
 
         Debug.Log("[Topping] Giao xôi thành công! Bếp đã được reset.");
     }
@@ -261,11 +368,17 @@ public class ToppingManager : MonoBehaviour
         if (!isHoldingFood) return;
 
         isHoldingFood = false;
+        isHoldingWrongFood = false;
 
         // Ẩn cục xôi trên tay
         if (heldFoodInHand != null)
         {
             heldFoodInHand.SetActive(false);
+        }
+
+        if (eatTutorialUI != null)
+        {
+            eatTutorialUI.SetActive(false);
         }
 
         // Đẻ ra một cục xôi rơi lạch cạch xuống đất
@@ -279,18 +392,7 @@ public class ToppingManager : MonoBehaviour
             }
         }
 
-        // Reset lại trạng thái bếp để làm hộp mới
-        hasFoamBox = false;
-        hasRice = false;
-        hasPate = false;
-        hasSausage = false;
-        hasCucumber = false;
-        hasKetchup = false;
-        hasEgg = false;
-        eggOnPan = false;
-        eggIsReady = false;
-        isBoxClosed = false;
-        eggCookTimer = 0f;
+        ResetKitchenState();
 
         Debug.Log("[Topping] Đã vứt hộp xôi!");
     }

@@ -34,6 +34,17 @@ public class InteractionSystem : MonoBehaviour
     [Tooltip("Image vòng tròn progress (Image Type = Filled, Radial 360)")]
     public Image holdProgressRing;
 
+    [Header("Hold E - Âm thanh")]
+    public AudioClip packingSound;
+    [Range(0f, 1f)] public float packingVolume = 1f;
+    [Range(0.1f, 3f)] public float packingPitch = 1f;
+    private AudioSource packingAudioSource;
+
+    [Header("Âm thanh khác")]
+    [Tooltip("Âm thanh khi vứt đồ vào thùng rác")]
+    public AudioClip trashSound;
+    [Range(0f, 1f)] public float trashVolume = 0.8f;
+
     // RectTransform để di chuyển vị trí
     private RectTransform promptRect;
 
@@ -67,6 +78,10 @@ public class InteractionSystem : MonoBehaviour
             CreateProgressRing();
 
         SetProgressRing(0f);
+
+        packingAudioSource = gameObject.AddComponent<AudioSource>();
+        packingAudioSource.playOnAwake = false;
+        packingAudioSource.loop = true;
     }
 
     /// <summary>
@@ -144,33 +159,41 @@ public class InteractionSystem : MonoBehaviour
 
         // Cập nhật vị trí UI mỗi frame — dùng tâm collider + offset nhỏ
         if (currentTarget != null && currentCollider != null)
-            UpdatePromptPosition(currentCollider.bounds.center);
+        {
+            // Hiện chữ [E] ở khoảng vai/cổ của vật thể
+            Vector3 topPos = new Vector3(
+                currentCollider.bounds.center.x,
+                currentCollider.bounds.center.y + currentCollider.bounds.extents.y * 0.5f,
+                currentCollider.bounds.center.z
+            );
+            UpdatePromptPosition(topPos);
+        }
 
         HandleInput();
-        HandleDropInput();
+        HandleVInput();
     }
 
-    // ===================== THẢ ĐỒ (CHUỘT TRÁI) =====================
-    void HandleDropInput()
+    // ===================== ĂN XÔI LỖI HOẶC XEM GIẤY (BẤM V) =====================
+    void HandleVInput()
     {
-        if (Mouse.current == null) return;
+        if (Keyboard.current == null) return;
 
-        // Bấm chuột trái để vứt đồ đang cầm
-        if (Mouse.current.leftButton.wasPressedThisFrame)
+        if (Keyboard.current.vKey.wasPressedThisFrame)
         {
-            bool dropped = false;
-
-            // Thử vứt tài liệu
-            if (DocumentManager.Instance != null && DocumentManager.Instance.IsHoldingDocument)
+            // Ưu tiên xem giấy nếu đang nhìn vào máy bay giấy
+            if (currentTarget != null && currentTarget.type == InteractableType.PaperAirplane)
             {
-                DocumentManager.Instance.DropDocument();
-                dropped = true;
+                PaperAirplaneStep plane = currentTarget.GetComponent<PaperAirplaneStep>();
+                if (plane != null)
+                {
+                    plane.ViewPaper();
+                    return;
+                }
             }
 
-            // Thử vứt xôi (nếu không vứt tài liệu)
-            if (!dropped && ToppingManager.Instance != null && ToppingManager.Instance.isHoldingFood)
+            if (ToppingManager.Instance != null && ToppingManager.Instance.isHoldingFood)
             {
-                ToppingManager.Instance.DropFood();
+                ToppingManager.Instance.EatFood();
             }
         }
     }
@@ -187,14 +210,7 @@ public class InteractionSystem : MonoBehaviour
 
         bool ePressed = Keyboard.current.eKey.isPressed;
 
-        // --- Bấm E cho PackedPaperOnTable (nhặt tài liệu đóng gói từ bàn) ---
-        if (currentTarget.type == InteractableType.PackedPaperOnTable && Keyboard.current.eKey.wasPressedThisFrame)
-        {
-            if (DocumentManager.Instance != null && DocumentManager.Instance.IsDocumentPackedOnTable)
-            {
-                DocumentManager.Instance.PickUpDocument();
-            }
-        }
+        // (Đã bỏ phím E nhặt tài liệu trên bàn, người chơi bắt buộc bấm V để xem trước)
 
         // --- Hold/Press E cho CloseBox ---
         if (currentTarget.type == InteractableType.CloseBox)
@@ -245,12 +261,21 @@ public class InteractionSystem : MonoBehaviour
 
             if (ePressed)
             {
+                if (!packingAudioSource.isPlaying && packingSound != null)
+                {
+                    packingAudioSource.clip = packingSound;
+                    packingAudioSource.volume = packingVolume;
+                    packingAudioSource.pitch = packingPitch;
+                    packingAudioSource.Play();
+                }
+
                 isHolding = true;
                 holdTimer += Time.deltaTime;
                 SetProgressRing(holdTimer / duration);
 
                 if (holdTimer >= duration)
                 {
+                    if (packingAudioSource.isPlaying) packingAudioSource.Stop();
                     PrintedPaper paper = currentTarget.GetComponent<PrintedPaper>();
                     if (paper != null) paper.PackageDocument();
                     ResetHold();
@@ -277,6 +302,10 @@ public class InteractionSystem : MonoBehaviour
         holdTimer = 0f;
         isHolding = false;
         SetProgressRing(0f);
+        if (packingAudioSource != null && packingAudioSource.isPlaying)
+        {
+            packingAudioSource.Stop();
+        }
     }
 
     // ===================== OVERLAP SPHERE =====================
@@ -326,6 +355,14 @@ public class InteractionSystem : MonoBehaviour
 
     // ===================== ĐIỀU KIỆN =====================
 
+    private bool IsHoldingAnyDeliverable()
+    {
+        bool holdingDoc = DocumentManager.Instance != null && DocumentManager.Instance.IsHoldingDocument;
+        bool holdingFood = ToppingManager.Instance != null && ToppingManager.Instance.isHoldingFood;
+        bool holdingDrink = DrinkManager.Instance != null && DrinkManager.Instance.isHoldingDrink;
+        return holdingDoc || holdingFood || holdingDrink;
+    }
+
     bool CanInteract(InteractableObject obj)
     {
         // Cửa kéo không cần ToppingManager — xử lý riêng
@@ -335,58 +372,104 @@ public class InteractionSystem : MonoBehaviour
             return door != null && !door.IsMoving;
         }
 
-        // Máy in: luôn tương tác được
+        // Máy in: chỉ cho phép in nếu có khách hàng đang yêu cầu
         if (obj.type == InteractableType.Printer)
-            return true;
+        {
+            if (DocumentManager.Instance != null)
+            {
+                CustomerData cust = DocumentManager.Instance.CurrentCustomer;
+                if (cust != null && cust.needsDocument)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
 
-        // Tờ giấy đã in: chỉ tương tác khi chưa cầm tài liệu
+        // Tờ giấy đã in: chỉ tương tác khi chưa cầm đồ gì khác
         if (obj.type == InteractableType.PrintedPaper)
         {
             DocumentManager dm = DocumentManager.Instance;
-            return dm != null && !dm.IsHoldingDocument;
+            return dm != null && !IsHoldingAnyDeliverable();
         }
 
-        // Khách hàng: chỉ giao khi đang cầm tài liệu và khách đang chờ
+        // Khách hàng: chỉ tương tác khi đang đợi nói chuyện hoặc đợi giao hàng (và cầm đúng đồ)
         if (obj.type == InteractableType.Customer)
         {
-            DocumentManager dm = DocumentManager.Instance;
             Customer customer = obj.GetComponent<Customer>();
-            return dm != null && dm.IsHoldingDocument && customer != null && customer.isWaitingForDocument;
+            if (customer == null) return false;
+
+            // Đang nói chuyện thì không hiện Prompt gì cả (để UI Hội Thoại tự lo)
+            if (customer.CurrentState == CustomerState.WaitingToTalk)
+                return true;
+
+            if (customer.CurrentState == CustomerState.WaitingForOrder)
+            {
+                // Chỉ hiện prompt nếu đang cầm tài liệu, hộp xôi hoặc cầm nước
+                DocumentManager dm = DocumentManager.Instance;
+                ToppingManager topMan = ToppingManager.Instance;
+                DrinkManager drinkMan = DrinkManager.Instance;
+                
+                bool hasDoc = (dm != null && dm.IsHoldingDocument);
+                bool hasFood = (topMan != null && topMan.isHoldingFood);
+                bool hasDrink = (drinkMan != null && drinkMan.isHoldingDrink);
+                return hasDoc || hasFood || hasDrink;
+            }
+
+            return false;
+        }
+
+        // Máy bay giấy: luôn cho phép nhặt
+        if (obj.type == InteractableType.PaperAirplane)
+        {
+            return true;
         }
 
         ToppingManager tm = ToppingManager.Instance;
         if (tm == null) return false;
 
+        // Khóa không cho làm đồ ăn nếu không có khách đang đói
+        bool canCook = true;
+        if (DocumentManager.Instance != null)
+        {
+            CustomerData cust = DocumentManager.Instance.CurrentCustomer;
+            if (cust == null || !cust.needsFood)
+            {
+                canCook = false;
+            }
+        }
+
         switch (obj.type)
         {
             case InteractableType.FoamBoxStack:
-                return !tm.IsBoxClosed && !tm.HasFoamBox;
+                return !tm.IsBoxClosed && !tm.HasFoamBox && canCook;
 
             case InteractableType.StickyRicePot:
-                return !tm.IsBoxClosed && tm.HasFoamBox && !tm.HasRice;
+                return !tm.IsBoxClosed && tm.HasFoamBox && !tm.HasRice && canCook;
 
             case InteractableType.PateBowl:
-                return !tm.IsBoxClosed && tm.HasRice && !tm.HasPate;
+                return !tm.IsBoxClosed && tm.HasRice && !tm.HasPate && canCook;
 
             case InteractableType.EggBox:
-                return !tm.IsBoxClosed && tm.HasPate && !tm.eggOnPan && !tm.HasEgg;
+                return !tm.IsBoxClosed && tm.HasRice && !tm.eggOnPan && !tm.HasEgg && canCook;
 
             case InteractableType.Pan:
-                return !tm.IsBoxClosed && tm.eggOnPan && tm.EggIsReady;
+                return !tm.IsBoxClosed && tm.eggOnPan && tm.EggIsReady && canCook;
 
             case InteractableType.SausageBowl:
-                return !tm.IsBoxClosed && tm.HasPate && !tm.HasSausage;
+                return !tm.IsBoxClosed && tm.HasRice && !tm.HasSausage && canCook;
 
             case InteractableType.CucumberBowl:
-                return !tm.IsBoxClosed && tm.HasPate && !tm.HasCucumber;
+                return !tm.IsBoxClosed && tm.HasRice && !tm.HasCucumber && canCook;
 
             case InteractableType.KetchupBox:
-                return !tm.IsBoxClosed && tm.HasPate && !tm.HasKetchup;
+                return !tm.IsBoxClosed && tm.HasRice && !tm.HasKetchup && canCook;
 
             // Đóng hộp: cho phép nếu chưa đóng (Hold E) hoặc đã đóng nhưng chưa nhặt (Press E)
             case InteractableType.CloseBox:
-                if (!tm.IsBoxClosed) return tm.HasPate && !tm.eggOnPan;
-                else return !tm.isHoldingFood;
+                if (!canCook) return false;
+                if (!tm.IsBoxClosed) return tm.HasRice;
+                else return !IsHoldingAnyDeliverable(); // Không cho nhặt nếu đang cầm đồ khác
 
             // Cửa kéo: luôn có thể tương tác (không phụ thuộc vào cooking flow)
             case InteractableType.SlidingDoor:
@@ -394,7 +477,24 @@ public class InteractionSystem : MonoBehaviour
                 return door != null && !door.IsMoving;
 
             case InteractableType.PackedPaperOnTable:
-                return DocumentManager.Instance != null && DocumentManager.Instance.IsDocumentPackedOnTable;
+                return DocumentManager.Instance != null && DocumentManager.Instance.IsDocumentPackedOnTable && !IsHoldingAnyDeliverable();
+
+            case InteractableType.FridgeDoor:
+                return true; // Luôn cho phép mở tủ lạnh
+
+            case InteractableType.Drink:
+                if (IsHoldingAnyDeliverable()) return false; // Không cầm 2 vật trên tay cùng lúc
+                
+                // Tủ lạnh đóng thì không cho lấy nước
+                HingeDoor fridgeDoor = UnityEngine.Object.FindObjectOfType<HingeDoor>();
+                if (fridgeDoor != null && !fridgeDoor.IsOpen) return false; 
+                
+                return true;
+
+            case InteractableType.TrashCan:
+                bool holdingDoc = DocumentManager.Instance != null && DocumentManager.Instance.IsHoldingDocument;
+                bool holdingDrink = DrinkManager.Instance != null && DrinkManager.Instance.isHoldingDrink;
+                return holdingDoc || holdingDrink;
 
             default:
                 return false;
@@ -431,7 +531,41 @@ public class InteractionSystem : MonoBehaviour
 
             case InteractableType.Customer:
                 Customer customer = obj.GetComponent<Customer>();
-                if (customer != null) customer.ReceiveDocument();
+                if (customer != null) customer.Interact();
+                break;
+
+            case InteractableType.PaperAirplane:
+                PaperAirplaneStep plane = obj.GetComponent<PaperAirplaneStep>();
+                if (plane != null) plane.ThrowAway();
+                break;
+
+            case InteractableType.FridgeDoor:
+                HingeDoor fridgeDoor = obj.GetComponent<HingeDoor>();
+                if (fridgeDoor != null) fridgeDoor.Interact();
+                return; // Không ẩn chữ Gợi ý ngay, để người chơi thấy có thể đóng/mở lại
+
+            case InteractableType.Drink:
+                DrinkItem drink = obj.GetComponent<DrinkItem>();
+                if (drink != null) drink.Interact();
+                break;
+
+            case InteractableType.TrashCan:
+                bool threwSomething = false;
+                if (DocumentManager.Instance != null && DocumentManager.Instance.IsHoldingDocument)
+                {
+                    DocumentManager.Instance.TrashDocument();
+                    threwSomething = true;
+                }
+                else if (DrinkManager.Instance != null && DrinkManager.Instance.isHoldingDrink)
+                {
+                    DrinkManager.Instance.DropDrink(); // DrinkManager.DropDrink chỉ ẩn chai nước đi, dùng luôn được
+                    threwSomething = true;
+                }
+
+                if (threwSomething && trashSound != null && packingAudioSource != null)
+                {
+                    packingAudioSource.PlayOneShot(trashSound, trashVolume);
+                }
                 break;
 
             // PrintedPaper được xử lý bằng Hold E ở HandleInput(), không cần ở đây
@@ -463,9 +597,26 @@ public class InteractionSystem : MonoBehaviour
                 return open ? "[E]  Đóng cửa" : "[E]  Mở cửa";
             case InteractableType.Printer:        return "[E]  Sử dụng máy in";
             case InteractableType.PrintedPaper:   return "[Giữ E]  Đóng gói tài liệu";
-            case InteractableType.PackedPaperOnTable: return "[E]  Nhặt lên tay  [V] Xem";
-            case InteractableType.Customer:       return "[E]  Giao tài liệu";
-            default:                              return "[E]  Tương tác";
+            case InteractableType.PackedPaperOnTable: return "[V] Xem tài liệu";
+            case InteractableType.Customer:
+                Customer cust = obj.GetComponent<Customer>();
+                if (cust != null)
+                {
+                    if (cust.CurrentState == CustomerState.WaitingToTalk) return "[E] Nói chuyện";
+                    if (cust.CurrentState == CustomerState.Talking) return "[Space] Tiếp tục";
+                    if (cust.CurrentState == CustomerState.WaitingForOrder) return "[E] Giao hàng";
+                }
+                return "[E] Tương tác";
+            case InteractableType.PaperAirplane:  
+                PaperAirplaneStep plane = obj.GetComponent<PaperAirplaneStep>();
+                if (plane != null && plane.HasViewed) return "[E] Vứt rác";
+                return "[V] Xem";
+            case InteractableType.FridgeDoor:
+                HingeDoor hinge = obj.GetComponent<HingeDoor>();
+                return (hinge != null && hinge.IsOpen) ? "[E] Đóng tủ lạnh" : "[E] Mở tủ lạnh";
+            case InteractableType.Drink:          return "[E] Lấy nước";
+            case InteractableType.TrashCan:       return "[E] Vứt vào thùng rác";
+            default:                              return "[E] Tương tác";
         }
     }
 

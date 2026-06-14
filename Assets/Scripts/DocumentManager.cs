@@ -18,6 +18,9 @@ public class DocumentManager : MonoBehaviour
     /// <summary>Người chơi đang cầm tài liệu?</summary>
     public bool IsHoldingDocument => isHoldingDocument;
 
+    /// <summary>Người chơi đang bật màn hình xem tài liệu?</summary>
+    public bool IsViewingDocument => isViewingDocument;
+
     /// <summary>Dữ liệu khách hàng hiện tại (ai đang được phục vụ)</summary>
     public CustomerData CurrentCustomer { get; private set; }
 
@@ -56,6 +59,12 @@ public class DocumentManager : MonoBehaviour
     private bool lastPrintWasColor = false;
     private int lastPrintQuantity = 1;
 
+    public bool LastPrintWasColor => lastPrintWasColor;
+    public int LastPrintQuantity => lastPrintQuantity;
+
+    // Đánh dấu đã hiện thoại chưa để không bị hiện lặp đi lặp lại
+    private bool hasReactedToCurrentDocument = false;
+
     // -------------------------------------------------------
 
     void Awake()
@@ -89,8 +98,17 @@ public class DocumentManager : MonoBehaviour
     {
         if (Keyboard.current == null) return;
 
+        // Kiểm tra xem có đang cầm món đồ khác không
+        bool holdingFood = false;
+        bool holdingDrink = false;
+        if (ToppingManager.Instance != null) holdingFood = ToppingManager.Instance.isHoldingFood;
+        if (DrinkManager.Instance != null) holdingDrink = DrinkManager.Instance.isHoldingDrink;
+        bool isHoldingOther = holdingFood || holdingDrink;
+
         // Bấm V để bật/tắt UI tài liệu (cho phép cả khi trên tay hoặc nằm chờ trên bàn)
-        if (Keyboard.current.vKey.wasPressedThisFrame && (isHoldingDocument || IsDocumentPackedOnTable))
+        bool canViewOnTable = IsDocumentPackedOnTable && !isHoldingOther;
+
+        if (Keyboard.current.vKey.wasPressedThisFrame && (isHoldingDocument || canViewOnTable))
         {
             ToggleViewCanvas();
         }
@@ -119,6 +137,33 @@ public class DocumentManager : MonoBehaviour
         Cursor.lockState = isViewingDocument ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = isViewingDocument;
         FirstPersonController.CanMove = !isViewingDocument;
+
+        // Nếu vừa BẬT màn hình soi (isViewingDocument = true)
+        if (isViewingDocument)
+        {
+            // (Không làm gì, chờ người chơi tự bấm thoát)
+        }
+        else // Nếu vừa TẮT màn hình soi (isViewingDocument = false)
+        {
+            if (IsDocumentPackedOnTable)
+            {
+                PickUpDocument();
+            }
+
+            // Kích hoạt câu thoại tự lẩm bẩm của Player (nếu có)
+            if (CurrentCustomer != null && !hasReactedToCurrentDocument && !string.IsNullOrEmpty(CurrentCustomer.playerReactionAfterReading))
+            {
+                hasReactedToCurrentDocument = true;
+                if (DialogManager.Instance != null)
+                {
+                    System.Collections.Generic.List<DialogNode> reactionNodes = new System.Collections.Generic.List<DialogNode>
+                    {
+                        new DialogNode { sentence = CurrentCustomer.playerReactionAfterReading, hasChoices = false }
+                    };
+                    DialogManager.Instance.StartDialogSequence(reactionNodes, null);
+                }
+            }
+        }
     }
 
     // ===================== PUBLIC API =====================
@@ -140,6 +185,7 @@ public class DocumentManager : MonoBehaviour
     public void SetCurrentCustomer(CustomerData customer)
     {
         CurrentCustomer = customer;
+        hasReactedToCurrentDocument = false; // Reset lại trạng thái lẩm bẩm cho khách mới
         Debug.Log($"[Document] Khách hàng hiện tại: {customer?.customerName ?? "Không có"}");
     }
 
@@ -240,6 +286,31 @@ public class DocumentManager : MonoBehaviour
             }
         }
 
-        Debug.Log("[Document] Đã vứt tài liệu!");
+        Debug.Log("[Document] Đã vứt tài liệu ra sàn!");
+    }
+
+    /// <summary>
+    /// Vứt tài liệu thẳng vào thùng rác (không đẻ ra prefab rác trên sàn)
+    /// </summary>
+    public void TrashDocument()
+    {
+        if (!isHoldingDocument) return;
+
+        isHoldingDocument = false;
+        isViewingDocument = false;
+
+        if (viewCanvas != null)
+            viewCanvas.SetActive(false);
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+
+        // Ẩn tài liệu trên tay
+        if (heldPaperInHand != null)
+        {
+            heldPaperInHand.SetActive(false);
+        }
+
+        Debug.Log("[Document] Đã phi tang tài liệu vào thùng rác!");
     }
 }
