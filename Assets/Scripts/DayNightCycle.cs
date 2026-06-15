@@ -13,9 +13,11 @@ public class DayNightCycle : MonoBehaviour
     [Tooltip("Góc xoay của mặt trời ban đêm (Mặt trời lặn, thường là -10 độ X)")]
     public Vector3 nightRotation = new Vector3(-10f, -30f, 0f);
 
+    [Tooltip("Màu của mặt trời vào ban ngày (Thường là màu Trắng hoặc Vàng nhạt)")]
+    public Color dayColor = Color.white;
+    
     [Tooltip("Màu của mặt trời vào ban đêm (Tùy chọn)")]
     public Color nightColor = new Color(0.1f, 0.1f, 0.2f);
-    private Color dayColor;
 
     [Header("=== KỊCH BẢN CHUYỂN ĐÊM ===")]
     [Tooltip("Sẽ bắt đầu tối đi SAU KHI bước thứ mấy trong Sequence hoàn thành? (VD: 3 là sau khi hoàn thành 3 bước)")]
@@ -30,6 +32,12 @@ public class DayNightCycle : MonoBehaviour
     [Tooltip("Tùy chọn: Kéo Material Skybox ban đêm vào đây")]
     public Material nightSkybox;
 
+    [Header("=== AMBIENT LIGHT (ĐỘ SÁNG TRONG NHÀ/BÓNG RÂM) ===")]
+    [Tooltip("Độ sáng môi trường ban ngày (Trắng hoặc Xám nhạt)")]
+    public Color dayAmbientColor = new Color(0.6f, 0.6f, 0.6f);
+    [Tooltip("Độ sáng môi trường ban đêm (Xanh đen cực tối)")]
+    public Color nightAmbientColor = new Color(0.1f, 0.1f, 0.15f);
+
     private bool isTransitioning = false;
     private bool isNight = false;
 
@@ -38,7 +46,7 @@ public class DayNightCycle : MonoBehaviour
         if (sunLight != null)
         {
             sunLight.transform.rotation = Quaternion.Euler(dayRotation);
-            dayColor = sunLight.color;
+            sunLight.color = dayColor;
         }
 
         // Nếu có gán Day Skybox thì set bầu trời ban ngày luôn lúc mới vào game
@@ -46,6 +54,10 @@ public class DayNightCycle : MonoBehaviour
         {
             RenderSettings.skybox = daySkybox;
         }
+
+        // Đặt luôn ánh sáng môi trường ban ngày
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+        RenderSettings.ambientLight = dayAmbientColor;
     }
 
     void Update()
@@ -98,6 +110,9 @@ public class DayNightCycle : MonoBehaviour
             {
                 blendedSkybox.Lerp(daySkybox, nightSkybox, t);
             }
+
+            // Chuyển dần độ sáng môi trường (từ sáng sang tối)
+            RenderSettings.ambientLight = Color.Lerp(dayAmbientColor, nightAmbientColor, t);
             
             yield return null;
         }
@@ -107,6 +122,8 @@ public class DayNightCycle : MonoBehaviour
             sunLight.transform.rotation = endRot;
             sunLight.color = nightColor;
         }
+        
+        RenderSettings.ambientLight = nightAmbientColor;
 
         // Set cứng Skybox ban đêm khi hoàn tất
         if (nightSkybox != null)
@@ -118,5 +135,49 @@ public class DayNightCycle : MonoBehaviour
 
         isTransitioning = false;
         isNight = true;
+    }
+
+    // ==========================================
+    // CÁC HÀM HỖ TRỢ TEST NHANH TRONG EDITOR
+    // ==========================================
+
+    [ContextMenu("👀 Xem Trước: BAN ĐÊM")]
+    public void PreviewNightMode()
+    {
+        if (sunLight != null)
+        {
+            sunLight.transform.rotation = Quaternion.Euler(nightRotation);
+            sunLight.color = nightColor;
+        }
+
+        if (nightSkybox != null)
+        {
+            RenderSettings.skybox = nightSkybox;
+        }
+
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+        RenderSettings.ambientLight = nightAmbientColor;
+        
+        Debug.Log("🌙 Đã ép cảnh sang BAN ĐÊM để xem trước! (Bấm Play game sẽ tự reset lại bình thường)");
+    }
+
+    [ContextMenu("☀️ Xem Trước: BAN NGÀY")]
+    public void PreviewDayMode()
+    {
+        if (sunLight != null)
+        {
+            sunLight.transform.rotation = Quaternion.Euler(dayRotation);
+            sunLight.color = dayColor;
+        }
+
+        if (daySkybox != null)
+        {
+            RenderSettings.skybox = daySkybox;
+        }
+
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+        RenderSettings.ambientLight = dayAmbientColor;
+        
+        Debug.Log("☀️ Đã khôi phục cảnh về BAN NGÀY!");
     }
 }
