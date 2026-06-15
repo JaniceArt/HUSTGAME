@@ -5,6 +5,8 @@ public class FirstPersonController : MonoBehaviour
 {
     [Header("Movement Settings")]
     public float moveSpeed = 5f;
+    [Tooltip("Tốc độ khi nhấn giữ phím Shift")]
+    public float sprintSpeed = 8f;
     [Header("Mouse Settings")]
     public float lookSensitivity = 2f;
     [Header("Head Bob (Breathing) Settings")]
@@ -64,9 +66,11 @@ public class FirstPersonController : MonoBehaviour
 
     void Update()
     {
+        // Luôn luôn chạy hiệu ứng thở (để lúc bị khóa trong Cutscene vẫn có cảm giác sống động)
+        HandleHeadBob();
+
         if (!CanMove) return;
         HandleMouseLook();
-        HandleHeadBob();
     }
 
     void HandleHeadBob()
@@ -100,8 +104,15 @@ public class FirstPersonController : MonoBehaviour
 
     void HandleMovement()
     {
+        // Kiểm tra xem người chơi có đang giữ phím Shift không
+        float currentSpeed = moveSpeed;
+        if (Keyboard.current != null && Keyboard.current.shiftKey.isPressed)
+        {
+            currentSpeed = sprintSpeed;
+        }
+
         Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
-        Vector3 velocity = move * moveSpeed;
+        Vector3 velocity = move * currentSpeed;
         velocity.y = rb.linearVelocity.y;
         rb.linearVelocity = velocity;
     }

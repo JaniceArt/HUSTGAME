@@ -176,8 +176,7 @@ public class Customer : SequenceStep
             if (animator.runtimeAnimatorController == null)
                 Debug.LogError($"<color=red>[LỖI NGHIÊM TRỌNG]</color> Khách {gameObject.name} CHƯA CÓ ANIMATOR CONTROLLER! Hãy kéo file Cus2 vào ô Controller của component Animator.");
             
-            if (animator.avatar == null)
-                Debug.LogError($"<color=red>[LỖI NGHIÊM TRỌNG]</color> Khách {gameObject.name} CHƯA CÓ AVATAR! Hãy gắn Avatar (vd: IdleAvatar) vào ô Avatar của component Animator.");
+            // XÓA ĐOẠN CHECK AVATAR Ở ĐÂY VÌ FILE GLB KHÔNG CẦN AVATAR VẪN CHẠY ĐƯỢC
             
             // Ép tắt Root Motion để tránh đánh nhau với code di chuyển
             animator.applyRootMotion = false;

@@ -93,9 +93,11 @@ public class SlidingDoor : MonoBehaviour
         {
             if (_isOpen && !SequenceManager.Instance.IsFinished)
             {
-                // Mở cửa -> Hoàn thành nhiệm vụ "Mở cửa tiệm" và gọi khách đầu tiên
+                // Mở cửa -> Hoàn thành nhiệm vụ "Mở cửa tiệm"
                 if (ObjectiveManager.Instance != null) ObjectiveManager.Instance.CompleteObjective();
-                SequenceManager.Instance.StartSequence();
+                
+                // Báo cho hệ thống nhảy sang bước Khách Hàng (HustBoy)
+                SequenceManager.Instance.NextStep();
             }
             else if (!_isOpen && SequenceManager.Instance.IsFinished)
             {
