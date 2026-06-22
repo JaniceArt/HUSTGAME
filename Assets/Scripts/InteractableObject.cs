@@ -19,7 +19,10 @@ public enum InteractableType
     PaperAirplane,  // Máy bay giấy - nhặt lên để vứt
     FridgeDoor,     // Cửa tủ lạnh - bấm E để xoay mở/đóng
     Drink,          // Nước uống (Coke, Pepsi, Lavie)
-    TrashCan        // Thùng rác
+    TrashCan,       // Thùng rác
+    UsbDrive,       // USB của khách đưa để in
+    Broom,          // Cây chổi để quét dọn
+    Stain           // Vết bẩn cần lau dọn
 }
 
 [RequireComponent(typeof(Collider))]

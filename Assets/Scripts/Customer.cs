@@ -25,15 +25,19 @@ public class Customer : SequenceStep
     [Tooltip("AudioSource để phát âm thanh (tự tìm nếu để trống)")]
     public AudioSource audioSource;
 
-    [Header("=== TÊN ANIMATION ===")]
-    [Tooltip("Tên state đi bộ trong Animator Controller")]
-    public string walkAnimName = "Walking";
+    [Header("=== VẬT PHẨM ĐẶC BIỆT ===")]
+    [Tooltip("Prefab của cái USB (nhớ gắn InteractableObject type = UsbDrive vào prefab này)")]
+    public GameObject usbPrefab;
     
-    [Tooltip("Tên state đứng im trong Animator Controller")]
-    public string idleAnimName = "Idle";
+    [Tooltip("Điểm xuất phát lúc ném USB (Bắt buộc gán)")]
+    public Transform usbSpawnPoint;
 
-    [Tooltip("Tên state tức giận (nếu chờ quá lâu)")]
-    public string angryAnimName = "Angry Point";
+    [Tooltip("Điểm USB rớt xuống bàn (Bắt buộc gán)")]
+    public Transform usbDropPoint;
+
+    [Header("=== ANIMATION PARAMETERS ===")]
+    public string isWalkingParam = "isWalking";
+    public string isAngryParam = "isAngry";
 
     [Tooltip("Thời gian chờ tối đa (giây) trước khi tức giận. Đặt 0 để không tức giận.")]
     public float patienceTime = 10f;
@@ -119,7 +123,6 @@ public class Customer : SequenceStep
                 if (waitTimer >= patienceTime)
                 {
                     isAngry = true;
-                    PlayAnim(angryAnimName);
                     // Phát âm thanh tức giận loop cùng animation
                     PlayAngrySound(true);
                     Debug.Log($"[Customer] Khách {customerData?.customerName} đã chờ quá {patienceTime}s và bắt đầu tức giận!");
@@ -131,29 +134,42 @@ public class Customer : SequenceStep
             // Debug để biết state hiện tại nếu timer không chạy
             // (chỉ log 1 lần mỗi khi state thay đổi - dùng flag tạm)
         }
+
+        // Đồng bộ Parameter cho Animator
+        if (animator != null)
+        {
+            bool walking = (currentState == CustomerState.WalkingIn || currentState == CustomerState.WalkingOut);
+            animator.SetBool(isWalkingParam, walking);
+            animator.SetBool(isAngryParam, isAngry);
+        }
     }
 
     void LateUpdate()
     {
         // HÀM NÀY CHẠY SAU KHI ANIMATOR ĐÃ TÍNH TOÁN XONG!
-        // Sẽ đè bẹp mọi góc xoay sai trái của cái Animation!
+        // Giúp đè bẹp những góc xoay sai trái của Animation một cách mượt mà.
         
+        Quaternion targetRotation = transform.rotation;
+
         if (currentState == CustomerState.WalkingIn && counterPoint != null)
         {
             Vector3 direction = (counterPoint.position - transform.position).normalized;
             direction.y = 0;
-            if (direction != Vector3.zero) transform.rotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+            if (direction != Vector3.zero) targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
         }
         else if ((currentState == CustomerState.WaitingToTalk || currentState == CustomerState.WaitingForOrder || currentState == CustomerState.Talking) && counterPoint != null)
         {
-            transform.rotation = counterPoint.rotation * Quaternion.Euler(0, yRotationOffset, 0);
+            targetRotation = counterPoint.rotation * Quaternion.Euler(0, yRotationOffset, 0);
         }
         else if (currentState == CustomerState.WalkingOut && startPoint != null)
         {
             Vector3 direction = (startPoint.position - transform.position).normalized;
             direction.y = 0;
-            if (direction != Vector3.zero) transform.rotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+            if (direction != Vector3.zero) targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
         }
+
+        // Xoay mượt mà thay vì giật cục (snap)
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 8f);
     }
 
     /// <summary>
@@ -226,15 +242,20 @@ public class Customer : SequenceStep
             UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
             if (agent != null)
             {
+                agent.updateRotation = false; // Tắt tự xoay của NavMeshAgent để tự xoay mượt bằng script
                 agent.speed = walkSpeed;
+                agent.isStopped = false;
                 agent.Warp(startPoint.position);
                 agent.SetDestination(counterPoint.position);
                 
                 // Đợi cho đến khi tìm xong đường và đi đến nơi
-                while (agent.pathPending || agent.remainingDistance > 0.2f)
+                while (agent.pathPending || agent.remainingDistance > 0.1f)
                 {
                     yield return null;
                 }
+                
+                agent.isStopped = true;
+                agent.ResetPath();
             }
             else
             {
@@ -245,40 +266,35 @@ public class Customer : SequenceStep
                     transform.position = Vector3.MoveTowards(transform.position, counterPoint.position, walkSpeed * Time.deltaTime);
                     yield return null; 
                 }
+                transform.position = counterPoint.position;
             }
-
-            transform.position = counterPoint.position;
         }
         else
         {
             Debug.Log($"[DIAGNOSTICS] Đã vào else block (chờ 2s) vì có 1 biến bị null!");
             yield return new WaitForSeconds(2f);
         }
-        
-        if (animator != null) animator.Play(idleAnimName);
         ChangeState(CustomerState.WaitingToTalk);
     }
 
     void ChangeState(CustomerState newState)
     {
         currentState = newState;
+
+        // Phát âm thanh tương ứng với trạng thái
         switch (currentState)
         {
             case CustomerState.WalkingIn:
-                PlayAnim(walkAnimName);
                 PlayWalkingSound(true);
                 break;
             case CustomerState.WaitingToTalk:
-                PlayAnim(idleAnimName);
                 PlayWalkingSound(false);
                 break;
             case CustomerState.Talking:
                 break;
             case CustomerState.WaitingForOrder:
-                PlayAnim((isAngry && !string.IsNullOrEmpty(angryAnimName)) ? angryAnimName : idleAnimName);
                 break;
             case CustomerState.WalkingOut:
-                PlayAnim(walkAnimName);
                 PlayAngrySound(false); // Dừng angry sound khi đi ra
                 PlayWalkingSound(true);
                 break;
@@ -319,43 +335,7 @@ public class Customer : SequenceStep
         }
     }
 
-    private bool checkedAnimState = false;
-    private bool hasAnimStateParam = false;
 
-    void PlayAnim(string stateName)
-    {
-        if (animator == null || string.IsNullOrEmpty(stateName)) return;
-        
-        // Kiểm tra xem Animator này có dùng biến AnimState (cách mới) hay không
-        if (!checkedAnimState)
-        {
-            foreach (AnimatorControllerParameter param in animator.parameters)
-            {
-                if (param.name == "AnimState")
-                {
-                    hasAnimStateParam = true;
-                    break;
-                }
-            }
-            checkedAnimState = true;
-        }
-
-        if (hasAnimStateParam)
-        {
-            // Dùng Integer parameter "AnimState": 0=Idle, 1=Walking, 2=Angry
-            if (stateName == walkAnimName)
-                animator.SetInteger("AnimState", 1);
-            else if (stateName == angryAnimName)
-                animator.SetInteger("AnimState", 2);
-            else // Idle hoặc bất kỳ state nào khác
-                animator.SetInteger("AnimState", 0);
-        }
-        else
-        {
-            // Cách cũ cho Hust Boy và Cosplayer
-            animator.CrossFade(stateName, 0.05f, 0, 0f);
-        }
-    }
 
     /// <summary>
     /// Khi người chơi bấm E vào khách hàng.
@@ -403,9 +383,67 @@ public class Customer : SequenceStep
     {
         Debug.Log($"[DIALOG - {customerData.customerName}]: Đã nói xong! Lựa chọn: {choiceResult}");
         
-        // Tương lai: Có thể lưu biến choiceResult vào Customer để xử lý (thêm tiền bo, v.v.)
-        
+        // Spawn USB nếu khách có mang USB
+        if (customerData != null && customerData.hasUsb && usbPrefab != null && counterPoint != null)
+        {
+            StartCoroutine(ThrowUsbRoutine());
+        }
+
         ChangeState(CustomerState.WaitingForOrder);
+    }
+
+    IEnumerator ThrowUsbRoutine()
+    {
+        if (usbSpawnPoint == null || usbDropPoint == null)
+        {
+            Debug.LogError($"[Customer] Khách {customerData?.customerName} CẦN ném USB nhưng chưa gán điểm usbSpawnPoint hoặc usbDropPoint! Hãy gán trong Inspector.");
+            yield break;
+        }
+
+        Vector3 startPos = usbSpawnPoint.position;
+        Vector3 endPos = usbDropPoint.position; 
+        
+        GameObject spawnedUsb = Instantiate(usbPrefab, startPos, Quaternion.identity);
+        
+        // Tạm thời tắt collider/rigidbody (nếu có) để diễn hoạt ảnh ném lơ lửng cho chuẩn
+        Collider col = spawnedUsb.GetComponent<Collider>();
+        if (col != null) col.enabled = false;
+        Rigidbody rb = spawnedUsb.GetComponent<Rigidbody>();
+        if (rb != null) rb.isKinematic = true;
+
+        float duration = 0.5f; // Thời gian bay là 0.5 giây
+        float time = 0;
+        
+        while (time < duration)
+        {
+            time += Time.deltaTime;
+            float t = time / duration;
+            
+            // Bay theo đường cong parabol
+            Vector3 currentPos = Vector3.Lerp(startPos, endPos, t);
+            currentPos.y += Mathf.Sin(t * Mathf.PI) * 0.8f; // Tạo độ vòng (đỉnh parabol nảy lên 0.8m)
+            
+            // Vừa bay vừa lộn nhào cho chân thực
+            if (spawnedUsb != null)
+            {
+                spawnedUsb.transform.position = currentPos;
+                spawnedUsb.transform.Rotate(Vector3.right * 720 * Time.deltaTime);
+            }
+
+            yield return null;
+        }
+
+        if (spawnedUsb != null)
+        {
+            spawnedUsb.transform.position = endPos;
+            spawnedUsb.transform.rotation = usbDropPoint.rotation; // Rơi xuống nằm y hệt như cái góc của Drop Point
+
+            // Bật lại collider để main có thể tương tác bấm E
+            if (col != null) col.enabled = true;
+            if (rb != null) rb.isKinematic = false;
+            
+            Debug.Log($"[Customer] USB đã hạ cánh an toàn xuống bàn!");
+        }
     }
 
     void HandleDelivery()
@@ -574,14 +612,43 @@ public class Customer : SequenceStep
 
     void FinishAndWalkOut()
     {
-        // Phát tiếng ting ting (trả tiền)
-        GameObject phoneObj = GameObject.Find("phone");
-        if (phoneObj != null)
+        // Phát tiếng ting ting (trả tiền) nếu khách này có trả tiền
+        if (customerData != null && customerData.paysMoney)
         {
-            AudioSource audio = phoneObj.GetComponent<AudioSource>();
-            if (audio != null) audio.Play();
+            GameObject phoneObj = GameObject.Find("phone");
+            if (phoneObj != null)
+            {
+                AudioSource audio = phoneObj.GetComponent<AudioSource>();
+                if (audio != null) audio.Play();
+            }
         }
 
+        if (customerData != null && customerData.leavesAngry)
+        {
+            StartCoroutine(AngryLeaveRoutine());
+        }
+        else
+        {
+            ChangeState(CustomerState.WalkingOut);
+            StartCoroutine(WalkOutRoutine());
+        }
+    }
+
+    IEnumerator AngryLeaveRoutine()
+    {
+        isAngry = true;
+        PlayAngrySound(true); // Bật âm thanh tức giận
+        
+        // Cập nhật animator ngay lập tức
+        if (animator != null) animator.SetBool(isAngryParam, true);
+        
+        // Đợi 2.5 giây cho hoạt ảnh dậm chân cắn rứt chạy xong
+        yield return new WaitForSeconds(2.5f);
+        
+        isAngry = false;
+        if (animator != null) animator.SetBool(isAngryParam, false);
+        PlayAngrySound(false); // Tắt âm thanh tức giận
+        
         ChangeState(CustomerState.WalkingOut);
         StartCoroutine(WalkOutRoutine());
     }
@@ -592,8 +659,6 @@ public class Customer : SequenceStep
     IEnumerator WalkOutRoutine()
     {
         Debug.Log($"[Customer] {customerData?.customerName} đã mua xong và rời đi!");
-        
-        if (animator != null) animator.Play(walkAnimName);
         
         hasFinishedWalking = false;
         hasFinishedMonologue = false;
@@ -607,13 +672,18 @@ public class Customer : SequenceStep
             UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
             if (agent != null)
             {
+                agent.updateRotation = false; // Tắt tự xoay
                 agent.speed = walkSpeed;
+                agent.isStopped = false;
                 agent.SetDestination(startPoint.position);
                 
-                while (agent.pathPending || agent.remainingDistance > 0.2f)
+                while (agent.pathPending || agent.remainingDistance > 0.1f)
                 {
                     yield return null;
                 }
+                
+                agent.isStopped = true;
+                agent.ResetPath();
             }
             else
             {
@@ -622,6 +692,7 @@ public class Customer : SequenceStep
                     transform.position = Vector3.MoveTowards(transform.position, startPoint.position, walkSpeed * Time.deltaTime);
                     yield return null;
                 }
+                transform.position = startPoint.position;
             }
         }
         

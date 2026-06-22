@@ -46,9 +46,20 @@ public class CustomerData : ScriptableObject
     [Tooltip("Tên khách hàng")]
     public string customerName = "Khách hàng";
 
+    [Header("=== THANH TOÁN & THÁI ĐỘ ===")]
+    [Tooltip("Khách này lúc đi về có phát tiếng Ting Ting (chuyển tiền) không? Bỏ tick nếu là khách miễn phí.")]
+    public bool paysMoney = true;
+
+    [Tooltip("Khách này có tức giận dậm chân chửi bới 1 lúc rồi mới bỏ đi không?")]
+    public bool leavesAngry = false;
+
     [Header("=== KỊCH BẢN HỘI THOẠI LÚC GỌI MÓN ===")]
     [Tooltip("Danh sách các câu thoại lúc mới vào. Bạn có thể chèn Lựa Chọn vào bất kỳ câu nào!")]
     public List<DialogNode> dialogNodes;
+
+    [Header("=== TÍNH NĂNG ĐẶC BIỆT ===")]
+    [Tooltip("Khách này có ném USB ra bàn để mình cắm vào máy tính không?")]
+    public bool hasUsb = false;
 
     [Header("=== KỊCH BẢN HỘI THOẠI LÚC NHẬN ĐỒ ===")]
     [Tooltip("Các câu thoại khách nói SAU KHI nhận xong tất cả đồ ăn/nước uống/giấy tờ")]

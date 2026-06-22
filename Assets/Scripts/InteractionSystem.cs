@@ -161,9 +161,14 @@ public class InteractionSystem : MonoBehaviour
         if (currentTarget != null && currentCollider != null)
         {
             // Hiện chữ [E] ở khoảng vai/cổ của vật thể
+            float yOffset = currentCollider.bounds.extents.y * 0.5f;
+            
+            // Nếu vật thể quá bé (như cái USB), ép chữ phải nằm cao hơn tâm ít nhất 15cm để không đè bẹp vật thể
+            if (yOffset < 0.15f) yOffset = 0.15f; 
+
             Vector3 topPos = new Vector3(
                 currentCollider.bounds.center.x,
-                currentCollider.bounds.center.y + currentCollider.bounds.extents.y * 0.5f,
+                currentCollider.bounds.center.y + yOffset,
                 currentCollider.bounds.center.z
             );
             UpdatePromptPosition(topPos);
@@ -247,6 +252,33 @@ public class InteractionSystem : MonoBehaviour
                         tm.PickUpFood();
                         HidePrompt();
                     }
+                }
+            }
+            return;
+        }
+
+        // --- Hold E cho việc Chà Vết Bẩn ---
+        if (currentTarget.type == InteractableType.Stain)
+        {
+            if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.isHoldingBroom)
+            {
+                float duration = holdDuration; // Dùng chung thời gian Hold (vd: 2s)
+                if (ePressed)
+                {
+                    isHolding = true;
+                    holdTimer += Time.deltaTime;
+                    SetProgressRing(holdTimer / duration);
+
+                    if (holdTimer >= duration)
+                    {
+                        CleaningTaskStep.Instance.CleanStain(currentTarget.gameObject);
+                        ResetHold();
+                        HidePrompt();
+                    }
+                }
+                else
+                {
+                    ResetHold();
                 }
             }
             return;
@@ -496,6 +528,15 @@ public class InteractionSystem : MonoBehaviour
                 bool holdingDrink = DrinkManager.Instance != null && DrinkManager.Instance.isHoldingDrink;
                 return holdingDoc || holdingDrink;
 
+            case InteractableType.UsbDrive:
+                return true; // Luôn cho phép tương tác với USB
+
+            case InteractableType.Broom:
+                return CleaningTaskStep.Instance != null && !CleaningTaskStep.Instance.isHoldingBroom && !IsHoldingAnyDeliverable();
+
+            case InteractableType.Stain:
+                return CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.isHoldingBroom;
+
             default:
                 return false;
         }
@@ -568,6 +609,12 @@ public class InteractionSystem : MonoBehaviour
                 }
                 break;
 
+            case InteractableType.UsbDrive:
+                // Biến mất USB
+                Destroy(obj.gameObject);
+                Debug.Log("<color=green>[USB]</color> Đã cắm USB vào máy tính!");
+                break;
+
             // PrintedPaper được xử lý bằng Hold E ở HandleInput(), không cần ở đây
         }
 
@@ -616,6 +663,9 @@ public class InteractionSystem : MonoBehaviour
                 return (hinge != null && hinge.IsOpen) ? "[E] Đóng tủ lạnh" : "[E] Mở tủ lạnh";
             case InteractableType.Drink:          return "[E] Lấy nước";
             case InteractableType.TrashCan:       return "[E] Vứt vào thùng rác";
+            case InteractableType.UsbDrive:       return "[E] Cắm USB vào máy tính";
+            case InteractableType.Broom:          return "[E] Nhặt chổi";
+            case InteractableType.Stain:          return "[Giữ E] Chà vết bẩn";
             default:                              return "[E] Tương tác";
         }
     }

@@ -103,12 +103,6 @@ public class SlidingDoor : MonoBehaviour
             {
                 // Đóng cửa khi đã hết khách -> Hoàn thành nhiệm vụ "Đóng cửa tiệm" và Load Ngày Mới
                 if (ObjectiveManager.Instance != null) ObjectiveManager.Instance.CompleteObjective();
-                
-                DayTransitionController dtc = Object.FindObjectOfType<DayTransitionController>();
-                if (dtc != null)
-                {
-                    dtc.gameObject.SetActive(true); // Đảm bảo nó được bật nếu bị tắt
-                }
             }
         }
     }

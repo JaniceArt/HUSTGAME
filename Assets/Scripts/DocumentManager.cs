@@ -131,6 +131,7 @@ public class DocumentManager : MonoBehaviour
         if (isViewingDocument && documentDisplayImage != null && CurrentCustomer != null)
         {
             documentDisplayImage.sprite = CurrentCustomer.documentImage;
+            documentDisplayImage.preserveAspect = true; // Tự động giữ đúng tỷ lệ gốc của ảnh, chống tràn viền/méo chữ
         }
 
         // Hiện/ẩn cursor và đóng băng player khi xem tài liệu
