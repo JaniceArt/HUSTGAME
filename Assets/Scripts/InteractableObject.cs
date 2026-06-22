@@ -22,7 +22,7 @@ public enum InteractableType
     TrashCan,       // Thùng rác
     UsbDrive,       // USB của khách đưa để in
     Broom,          // Cây chổi để quét dọn
-    Stain           // Vết bẩn cần lau dọn
+    Stain           // Vết bẩn trên sàn
 }
 
 [RequireComponent(typeof(Collider))]

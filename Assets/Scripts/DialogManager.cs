@@ -99,7 +99,7 @@ public class DialogManager : MonoBehaviour
         {
             HandleChoiceInput();
         }
-        else if (isWaitingForInput && Keyboard.current.spaceKey.wasPressedThisFrame)
+        else if (isWaitingForInput && (Keyboard.current.spaceKey.wasPressedThisFrame || Mouse.current.leftButton.wasPressedThisFrame))
         {
             if (isShowingReply)
             {
@@ -213,7 +213,7 @@ public class DialogManager : MonoBehaviour
             if (selectedChoiceIndex >= currentNode.choices.Count) selectedChoiceIndex = 0;
             UpdateChoiceUI(currentNode);
         }
-        else if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame)
+        else if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame || Mouse.current.leftButton.wasPressedThisFrame)
         {
             finalizedChoiceResult = selectedChoiceIndex;
             DialogChoice chosen = currentNode.choices[finalizedChoiceResult];

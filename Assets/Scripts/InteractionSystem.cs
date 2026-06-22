@@ -21,8 +21,29 @@ public class InteractionSystem : MonoBehaviour
     [Tooltip("Panel/GameObject chứa text [E]")]
     public GameObject promptPanel;
 
-    [Tooltip("Text hiện nội dung gợi ý")]
+    [Tooltip("Text hiện nội dung gợi ý (Ở tâm màn hình)")]
     public TextMeshProUGUI promptText;
+
+    [Tooltip("Text hiển thị hành động (VD: TALK, PICK UP) ở góc màn hình")]
+    public TextMeshProUGUI actionHintText;
+
+    [Tooltip("UI Image để hiển thị icon con chuột trái kế bên chữ")]
+    public Image actionHintIcon;
+
+    [Tooltip("Text hiển thị hành động phụ (Chuột Phải) ở góc màn hình")]
+    public TextMeshProUGUI secondaryActionHintText;
+
+    [Tooltip("UI Image để hiển thị icon con chuột phải kế bên chữ phụ")]
+    public Image secondaryActionHintIcon;
+
+    [Tooltip("Ảnh con chuột sáng nút Trái")]
+    public Sprite leftClickSprite;
+
+    [Tooltip("Ảnh con chuột sáng nút Phải")]
+    public Sprite rightClickSprite;
+
+    [Tooltip("UI hiển thị tâm ngắm (Dấu + hoặc Dấu chấm)")]
+    public GameObject crosshairUI;
 
     [Tooltip("Độ cao UI nổi lên phía trên object (mét)")]
     public float promptHeightOffset = 0f;
@@ -56,6 +77,8 @@ public class InteractionSystem : MonoBehaviour
     private float holdTimer = 0f;
     private bool isHolding = false;
     private GameObject _ringBackground; // Vòng nền xám mờ
+
+    private bool wasDialogActiveLastFrame = false;
 
     // -------------------------------------------------------
 
@@ -155,50 +178,48 @@ public class InteractionSystem : MonoBehaviour
 
     void Update()
     {
-        ScanForInteractable();
-
-        // Cập nhật vị trí UI mỗi frame — dùng tâm collider + offset nhỏ
-        if (currentTarget != null && currentCollider != null)
+        bool isDialogActive = DialogManager.Instance != null && DialogManager.Instance.dialogPanel != null && DialogManager.Instance.dialogPanel.activeInHierarchy;
+        
+        // Ngăn chặn Click "lây lan" từ lúc bấm tắt Hội thoại sang Interaction (Same-frame input bleed)
+        if (wasDialogActiveLastFrame && !isDialogActive)
         {
-            // Hiện chữ [E] ở khoảng vai/cổ của vật thể
-            float yOffset = currentCollider.bounds.extents.y * 0.5f;
-            
-            // Nếu vật thể quá bé (như cái USB), ép chữ phải nằm cao hơn tâm ít nhất 15cm để không đè bẹp vật thể
-            if (yOffset < 0.15f) yOffset = 0.15f; 
-
-            Vector3 topPos = new Vector3(
-                currentCollider.bounds.center.x,
-                currentCollider.bounds.center.y + yOffset,
-                currentCollider.bounds.center.z
-            );
-            UpdatePromptPosition(topPos);
+            wasDialogActiveLastFrame = isDialogActive;
+            return; // Bỏ qua Update frame này vì hội thoại vừa mới tắt tức thì
         }
+        wasDialogActiveLastFrame = isDialogActive;
+
+        ScanForInteractable();
 
         HandleInput();
         HandleVInput();
+
+        UpdateActionHint();
     }
 
-    // ===================== ĂN XÔI LỖI HOẶC XEM GIẤY (BẤM V) =====================
+    // ===================== ĂN XÔI LỖI HOẶC XEM GIẤY =====================
     void HandleVInput()
     {
-        if (Keyboard.current == null) return;
+        if (Keyboard.current == null || Mouse.current == null) return;
 
+        // Bấm Chuột Phải để ĂN xôi (bất kể đang nhìn đi đâu)
+        if (Mouse.current.rightButton.wasPressedThisFrame)
+        {
+            if (ToppingManager.Instance != null && ToppingManager.Instance.isHoldingFood)
+            {
+                ToppingManager.Instance.EatFood();
+            }
+        }
+
+        // Bấm V để xem máy bay giấy
         if (Keyboard.current.vKey.wasPressedThisFrame)
         {
-            // Ưu tiên xem giấy nếu đang nhìn vào máy bay giấy
             if (currentTarget != null && currentTarget.type == InteractableType.PaperAirplane)
             {
                 PaperAirplaneStep plane = currentTarget.GetComponent<PaperAirplaneStep>();
                 if (plane != null)
                 {
                     plane.ViewPaper();
-                    return;
                 }
-            }
-
-            if (ToppingManager.Instance != null && ToppingManager.Instance.isHoldingFood)
-            {
-                ToppingManager.Instance.EatFood();
             }
         }
     }
@@ -207,78 +228,40 @@ public class InteractionSystem : MonoBehaviour
 
     void HandleInput()
     {
+        // Chặn tương tác nếu đang trong hội thoại
+        if (DialogManager.Instance != null && DialogManager.Instance.dialogPanel != null && DialogManager.Instance.dialogPanel.activeInHierarchy)
+        {
+            ResetHold();
+            return;
+        }
+
         if (Keyboard.current == null || currentTarget == null) 
         {
             ResetHold();
             return;
         }
 
-        bool ePressed = Keyboard.current.eKey.isPressed;
+        bool ePressed = Mouse.current.leftButton.isPressed;
 
         // (Đã bỏ phím E nhặt tài liệu trên bàn, người chơi bắt buộc bấm V để xem trước)
 
-        // --- Hold/Press E cho CloseBox ---
+        // --- Press E cho CloseBox ---
         if (currentTarget.type == InteractableType.CloseBox)
         {
             ToppingManager tm = ToppingManager.Instance;
             if (tm != null)
             {
-                if (!tm.IsBoxClosed)
+                if (Mouse.current.leftButton.wasPressedThisFrame)
                 {
-                    float duration = holdDuration;
-                    if (ePressed)
+                    if (!tm.IsBoxClosed)
                     {
-                        isHolding = true;
-                        holdTimer += Time.deltaTime;
-                        SetProgressRing(holdTimer / duration);
-
-                        if (holdTimer >= duration)
-                        {
-                            tm.CloseBox();
-                            ResetHold();
-                            HidePrompt();
-                        }
+                        tm.CloseBox();
                     }
                     else
                     {
-                        ResetHold();
-                    }
-                }
-                else
-                {
-                    // Đã đóng, bấm E để nhặt
-                    if (Keyboard.current.eKey.wasPressedThisFrame)
-                    {
                         tm.PickUpFood();
-                        HidePrompt();
                     }
-                }
-            }
-            return;
-        }
-
-        // --- Hold E cho việc Chà Vết Bẩn ---
-        if (currentTarget.type == InteractableType.Stain)
-        {
-            if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.isHoldingBroom)
-            {
-                float duration = holdDuration; // Dùng chung thời gian Hold (vd: 2s)
-                if (ePressed)
-                {
-                    isHolding = true;
-                    holdTimer += Time.deltaTime;
-                    SetProgressRing(holdTimer / duration);
-
-                    if (holdTimer >= duration)
-                    {
-                        CleaningTaskStep.Instance.CleanStain(currentTarget.gameObject);
-                        ResetHold();
-                        HidePrompt();
-                    }
-                }
-                else
-                {
-                    ResetHold();
+                    HidePrompt();
                 }
             }
             return;
@@ -321,11 +304,52 @@ public class InteractionSystem : MonoBehaviour
             return;
         }
 
-        // --- Bấm E thường cho các action khác ---
-        ResetHold(); // Không phải CloseBox thì không giữ
-        if (Keyboard.current.eKey.wasPressedThisFrame)
+        // --- Hold E cho Stain (Vết bẩn) ---
+        if (currentTarget.type == InteractableType.Stain)
         {
-            HandleInteraction(currentTarget);
+            if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom)
+            {
+                float duration = 2.0f; // Cần 2s để chà xong 1 vết
+                if (ePressed)
+                {
+                    isHolding = true;
+                    holdTimer += Time.deltaTime;
+                    SetProgressRing(holdTimer / duration);
+                    
+                    // Phát âm thanh chà chổi (nếu có)
+                    CleaningTaskStep.Instance.PlayScrubSound();
+
+                    if (holdTimer >= duration)
+                    {
+                        CleaningTaskStep.Instance.CleanStain(currentTarget.gameObject);
+                        ResetHold();
+                        HidePrompt();
+                    }
+                }
+                else
+                {
+                    ResetHold();
+                }
+            }
+            return;
+        }
+
+        // --- Bấm Chuột trái thường cho các action khác ---
+        ResetHold(); // Không phải Hold Action thì không giữ
+        if (Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            if (currentTarget.type == InteractableType.Broom)
+            {
+                if (CleaningTaskStep.Instance != null && !CleaningTaskStep.Instance.IsHoldingBroom)
+                {
+                    CleaningTaskStep.Instance.PickUpBroom();
+                    HidePrompt();
+                }
+            }
+            else
+            {
+                HandleInteraction(currentTarget);
+            }
         }
     }
 
@@ -340,30 +364,30 @@ public class InteractionSystem : MonoBehaviour
         }
     }
 
-    // ===================== OVERLAP SPHERE =====================
+    // ===================== RAYCAST (XUYÊN VẬT THỂ RÁC) =====================
 
     void ScanForInteractable()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, interactRange);
-
         InteractableObject bestTarget = null;
         Collider bestCollider = null;
-        float bestDot = -1f;
+        float minDistance = float.MaxValue;
 
-        foreach (Collider col in hits)
+        // Bắn tia laser xuyên thấu mọi thứ trong tầm với
+        RaycastHit[] hits = Physics.RaycastAll(playerCamera.transform.position, playerCamera.transform.forward, interactRange);
+
+        foreach (RaycastHit hit in hits)
         {
-            InteractableObject obj = col.GetComponentInParent<InteractableObject>();
-            if (obj == null || !CanInteract(obj)) continue;
-
-            // Dùng tâm của Collider thay vì tâm của Transform (vì tâm Transform của cửa bị lệch hẳn sang một bên)
-            Vector3 dirToObj = (col.bounds.center - playerCamera.transform.position).normalized;
-            float dot = Vector3.Dot(playerCamera.transform.forward, dirToObj);
-
-            if (dot > 0.5f && dot > bestDot)
+            InteractableObject obj = hit.collider.GetComponentInParent<InteractableObject>();
+            
+            // Tìm vật thể Tương tác được gần nhất (bỏ qua tường, kính, thân tủ lạnh...)
+            if (obj != null && CanInteract(obj))
             {
-                bestDot = dot;
-                bestTarget = obj;
-                bestCollider = col;
+                if (hit.distance < minDistance)
+                {
+                    minDistance = hit.distance;
+                    bestTarget = obj;
+                    bestCollider = hit.collider;
+                }
             }
         }
 
@@ -437,15 +461,7 @@ public class InteractionSystem : MonoBehaviour
 
             if (customer.CurrentState == CustomerState.WaitingForOrder)
             {
-                // Chỉ hiện prompt nếu đang cầm tài liệu, hộp xôi hoặc cầm nước
-                DocumentManager dm = DocumentManager.Instance;
-                ToppingManager topMan = ToppingManager.Instance;
-                DrinkManager drinkMan = DrinkManager.Instance;
-                
-                bool hasDoc = (dm != null && dm.IsHoldingDocument);
-                bool hasFood = (topMan != null && topMan.isHoldingFood);
-                bool hasDrink = (drinkMan != null && drinkMan.isHoldingDrink);
-                return hasDoc || hasFood || hasDrink;
+                return true; // Luôn cho phép bấm vào khách hàng để giao hàng HOẶC để họ nhắc lại Order
             }
 
             return false;
@@ -532,10 +548,12 @@ public class InteractionSystem : MonoBehaviour
                 return true; // Luôn cho phép tương tác với USB
 
             case InteractableType.Broom:
-                return CleaningTaskStep.Instance != null && !CleaningTaskStep.Instance.isHoldingBroom && !IsHoldingAnyDeliverable();
+                // Chỉ nhặt chổi nếu Task Dọn dẹp đang chạy và chưa cầm chổi
+                return CleaningTaskStep.Instance != null && !CleaningTaskStep.Instance.IsHoldingBroom && !IsHoldingAnyDeliverable();
 
             case InteractableType.Stain:
-                return CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.isHoldingBroom;
+                // Chỉ chà được vết bẩn nếu đang cầm chổi
+                return CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom;
 
             default:
                 return false;
@@ -615,7 +633,9 @@ public class InteractionSystem : MonoBehaviour
                 Debug.Log("<color=green>[USB]</color> Đã cắm USB vào máy tính!");
                 break;
 
-            // PrintedPaper được xử lý bằng Hold E ở HandleInput(), không cần ở đây
+            case InteractableType.PackedPaperOnTable:
+                DocumentManager.Instance.ViewPackedPaperDirectly();
+                break;
         }
 
         HidePrompt();
@@ -627,60 +647,148 @@ public class InteractionSystem : MonoBehaviour
     {
         switch (obj.type)
         {
-            case InteractableType.FoamBoxStack:   return "[E]  Lấy hộp xốp";
-            case InteractableType.StickyRicePot:  return "[E]  Múc xôi";
-            case InteractableType.PateBowl:       return "[E]  Thêm patê";
-            case InteractableType.EggBox:         return "[E]  Đập trứng lên chảo";
-            case InteractableType.Pan:            return "[E]  Lấy trứng ốp la";
-            case InteractableType.SausageBowl:    return "[E]  Thêm xúc xích";
-            case InteractableType.CucumberBowl:   return "[E]  Thêm dưa leo";
-            case InteractableType.KetchupBox:     return "[E]  Thêm kết chúp";
-            case InteractableType.CloseBox:
-                ToppingManager tmClose = ToppingManager.Instance;
-                return (tmClose != null && tmClose.IsBoxClosed) ? "[E]  Nhặt hộp xôi" : "[Giữ E]  Đóng hộp";
-            case InteractableType.SlidingDoor:
-                SlidingDoor slideDoor = obj.GetComponent<SlidingDoor>();
-                bool open = slideDoor != null && slideDoor.IsOpen;
-                return open ? "[E]  Đóng cửa" : "[E]  Mở cửa";
-            case InteractableType.Printer:        return "[E]  Sử dụng máy in";
-            case InteractableType.PrintedPaper:   return "[Giữ E]  Đóng gói tài liệu";
-            case InteractableType.PackedPaperOnTable: return "[V] Xem tài liệu";
-            case InteractableType.Customer:
-                Customer cust = obj.GetComponent<Customer>();
-                if (cust != null)
-                {
-                    if (cust.CurrentState == CustomerState.WaitingToTalk) return "[E] Nói chuyện";
-                    if (cust.CurrentState == CustomerState.Talking) return "[Space] Tiếp tục";
-                    if (cust.CurrentState == CustomerState.WaitingForOrder) return "[E] Giao hàng";
-                }
-                return "[E] Tương tác";
-            case InteractableType.PaperAirplane:  
-                PaperAirplaneStep plane = obj.GetComponent<PaperAirplaneStep>();
-                if (plane != null && plane.HasViewed) return "[E] Vứt rác";
-                return "[V] Xem";
-            case InteractableType.FridgeDoor:
-                HingeDoor hinge = obj.GetComponent<HingeDoor>();
-                return (hinge != null && hinge.IsOpen) ? "[E] Đóng tủ lạnh" : "[E] Mở tủ lạnh";
-            case InteractableType.Drink:          return "[E] Lấy nước";
-            case InteractableType.TrashCan:       return "[E] Vứt vào thùng rác";
-            case InteractableType.UsbDrive:       return "[E] Cắm USB vào máy tính";
-            case InteractableType.Broom:          return "[E] Nhặt chổi";
-            case InteractableType.Stain:          return "[Giữ E] Chà vết bẩn";
-            default:                              return "[E] Tương tác";
+            case InteractableType.FoamBoxStack:   return "Hộp xốp";
+            case InteractableType.StickyRicePot:  return "Nồi xôi";
+            case InteractableType.PateBowl:       return "Patê";
+            case InteractableType.EggBox:         return "Khay trứng";
+            case InteractableType.Pan:            return "Chảo";
+            case InteractableType.SausageBowl:    return "Xúc xích";
+            case InteractableType.CucumberBowl:   return "Dưa leo";
+            case InteractableType.KetchupBox:     return "Kết chúp";
+            case InteractableType.CloseBox:       return "Hộp xôi";
+            case InteractableType.SlidingDoor:    return "Cửa ra vào";
+            case InteractableType.Printer:        return "Máy in";
+            case InteractableType.PrintedPaper:   return "Tài liệu";
+            case InteractableType.PackedPaperOnTable: return "Tài liệu đóng gói";
+            case InteractableType.Customer:       return "Khách hàng";
+            case InteractableType.PaperAirplane:  return "Máy bay giấy";
+            case InteractableType.FridgeDoor:     return "Tủ lạnh";
+            case InteractableType.Drink:          return "Nước uống";
+            case InteractableType.TrashCan:       return "Thùng rác";
+            case InteractableType.UsbDrive:       return "USB";
+            case InteractableType.Broom:          return "Cây chổi";
+            case InteractableType.Stain:          return "Vết bẩn";
+            default:                              return "Vật thể";
         }
     }
 
     // ===================== UI =====================
 
+    string GetActionHintText(InteractableObject obj)
+    {
+        switch (obj.type)
+        {
+            case InteractableType.Customer:
+                Customer cust = obj.GetComponent<Customer>();
+                if (cust != null && cust.CurrentState == CustomerState.WaitingForOrder)
+                {
+                    if (IsHoldingAnyDeliverable()) return "Giao hàng";
+                    return "Hỏi lại";
+                }
+                return "Nói chuyện";
+                
+            case InteractableType.EggBox:
+                return "Rán trứng";
+                
+            case InteractableType.StickyRicePot:
+            case InteractableType.PateBowl:
+            case InteractableType.SausageBowl:
+            case InteractableType.CucumberBowl:
+            case InteractableType.KetchupBox:
+            case InteractableType.Pan:
+                return "Thêm";
+
+            case InteractableType.SlidingDoor:
+            case InteractableType.FridgeDoor:
+                return "Đóng / Mở";
+
+            case InteractableType.TrashCan:
+                return "Vứt";
+
+            case InteractableType.Stain:
+                return "Dọn (Giữ)";
+
+            case InteractableType.CloseBox:
+                ToppingManager tm = ToppingManager.Instance;
+                if (tm != null && !tm.IsBoxClosed) return "Đóng gói";
+                return "Lấy";
+
+            case InteractableType.PrintedPaper:
+                return "Đóng gói (Giữ)";
+            case InteractableType.PackedPaperOnTable:
+                return "Xem";
+
+            case InteractableType.FoamBoxStack:
+            case InteractableType.Broom:
+            case InteractableType.Drink:
+            case InteractableType.UsbDrive:
+                return "Nhặt";
+
+            case InteractableType.Printer:
+                return "Sử dụng";
+
+            default:
+                return "Tương tác";
+        }
+    }
+
     void ShowPrompt(string text)
     {
         if (promptPanel != null) promptPanel.SetActive(true);
         if (promptText  != null) promptText.text = text;
+        if (crosshairUI != null) crosshairUI.SetActive(false); // Ẩn tâm ngắm
     }
 
     void HidePrompt()
     {
         if (promptPanel != null) promptPanel.SetActive(false);
+        if (crosshairUI != null) crosshairUI.SetActive(true); // Hiện lại tâm ngắm
+    }
+
+    void UpdateActionHint()
+    {
+        // === HÀNH ĐỘNG CHÍNH (CHUỘT TRÁI) ===
+        if (actionHintText != null)
+        {
+            if (currentTarget != null)
+            {
+                actionHintText.gameObject.SetActive(true);
+                actionHintText.text = GetActionHintText(currentTarget);
+                if (actionHintIcon != null)
+                {
+                    actionHintIcon.gameObject.SetActive(true);
+                    actionHintIcon.sprite = leftClickSprite;
+                }
+            }
+            else
+            {
+                actionHintText.gameObject.SetActive(false);
+                if (actionHintIcon != null) actionHintIcon.gameObject.SetActive(false);
+            }
+        }
+
+        // === HÀNH ĐỘNG PHỤ (CHUỘT PHẢI) ===
+        if (secondaryActionHintText != null)
+        {
+            bool holdingFood = ToppingManager.Instance != null && ToppingManager.Instance.isHoldingFood;
+            
+            // Nếu đang cầm đồ ăn, hiện Chuột Phải = Ăn Xôi
+            if (holdingFood)
+            {
+                secondaryActionHintText.gameObject.SetActive(true);
+                secondaryActionHintText.text = "ĂN XÔI";
+                if (secondaryActionHintIcon != null)
+                {
+                    secondaryActionHintIcon.gameObject.SetActive(true);
+                    secondaryActionHintIcon.sprite = rightClickSprite;
+                }
+            }
+            else
+            {
+                secondaryActionHintText.gameObject.SetActive(false);
+                if (secondaryActionHintIcon != null) secondaryActionHintIcon.gameObject.SetActive(false);
+            }
+        }
     }
 
     void SetProgressRing(float value)

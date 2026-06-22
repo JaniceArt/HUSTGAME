@@ -68,6 +68,9 @@ public class Customer : SequenceStep
     private float waitTimer = 0f;
     private bool isAngry = false;
 
+    // Biến cờ tĩnh để theo dõi xem đã làm xong Tutorial cho người khách đầu tiên chưa
+    private static bool hasDoneTutorial = false;
+
     void Start()
     {
         InteractableObject interactObj = GetComponent<InteractableObject>();
@@ -140,7 +143,8 @@ public class Customer : SequenceStep
         {
             bool walking = (currentState == CustomerState.WalkingIn || currentState == CustomerState.WalkingOut);
             animator.SetBool(isWalkingParam, walking);
-            animator.SetBool(isAngryParam, isAngry);
+            
+            // animator.SetBool(isAngryParam, isAngry); // Tạm tắt để khỏi báo lỗi IsAngry
         }
     }
 
@@ -268,13 +272,27 @@ public class Customer : SequenceStep
                 }
                 transform.position = counterPoint.position;
             }
+
+            // Đã đến nơi (bỏ check khoảng cách quá gắt < 0.2f gây kẹt)
+            if (animator != null) animator.SetInteger("AnimState", 0);
+        
+            // Xoay mặt về hướng quầy
+            transform.rotation = counterPoint.rotation;
+        
+            ChangeState(CustomerState.WaitingToTalk);
+
+            // [TUTORIAL] Khi khách đầu tiên đi vào quầy
+            if (!hasDoneTutorial && ObjectiveManager.Instance != null)
+            {
+                ObjectiveManager.Instance.ShowObjective("Nói chuyện với khách hàng để lấy Order");
+            }
         }
         else
         {
             Debug.Log($"[DIAGNOSTICS] Đã vào else block (chờ 2s) vì có 1 biến bị null!");
             yield return new WaitForSeconds(2f);
+            ChangeState(CustomerState.WaitingToTalk);
         }
-        ChangeState(CustomerState.WaitingToTalk);
     }
 
     void ChangeState(CustomerState newState)
@@ -379,17 +397,26 @@ public class Customer : SequenceStep
         }
     }
 
+    private bool hasToldOrder = false;
+
     void OnDialogFinished(int choiceResult)
     {
         Debug.Log($"[DIALOG - {customerData.customerName}]: Đã nói xong! Lựa chọn: {choiceResult}");
         
-        // Spawn USB nếu khách có mang USB
-        if (customerData != null && customerData.hasUsb && usbPrefab != null && counterPoint != null)
+        // Spawn USB nếu khách có mang USB (Chỉ vứt lần đầu tiên nói chuyện)
+        if (!hasToldOrder && customerData != null && customerData.hasUsb && usbPrefab != null && counterPoint != null)
         {
             StartCoroutine(ThrowUsbRoutine());
         }
 
+        hasToldOrder = true;
         ChangeState(CustomerState.WaitingForOrder);
+
+        // [TUTORIAL] Sau khi khách nói xong order
+        if (!hasDoneTutorial && ObjectiveManager.Instance != null)
+        {
+            ObjectiveManager.Instance.ShowObjective("Làm đồ ăn, nước uống theo yêu cầu và giao cho khách");
+        }
     }
 
     IEnumerator ThrowUsbRoutine()
@@ -516,11 +543,9 @@ public class Customer : SequenceStep
 
         if (!hasHandedSomething)
         {
-            // Bấm E nhưng không cầm gì trên tay (hoặc cầm món khách đã nhận rồi)
-            if ((tm == null || !tm.isHoldingFood) && (dm == null || !dm.IsHoldingDocument) && (drinkMan == null || !drinkMan.isHoldingDrink))
-            {
-                Debug.LogWarning($"<color=orange>[Nhắc nhở]</color> Bạn ĐANG TAY KHÔNG! Hãy cầm hộp xôi, tài liệu hoặc nước lên tay trước khi bấm Giao hàng.");
-            }
+            Debug.Log("[Customer] Người chơi không cầm gì hoặc cầm đồ sai loại -> Xin nhắc lại Order.");
+            RepeatOrder();
+            return;
         }
         else if (hasWrongOrder)
         {
@@ -537,6 +562,26 @@ public class Customer : SequenceStep
 
         // Kiểm tra xem đã đủ hết chưa
         CheckCompletion();
+    }
+
+    void RepeatOrder()
+    {
+        ChangeState(CustomerState.Talking);
+        if (DialogManager.Instance != null && customerData != null && !string.IsNullOrEmpty(customerData.repeatOrderDialog))
+        {
+            List<DialogNode> nodes = new List<DialogNode>
+            {
+                new DialogNode { sentence = customerData.repeatOrderDialog, hasChoices = false }
+            };
+            DialogManager.Instance.StartDialogSequence(nodes, (result) => 
+            {
+                ChangeState(CustomerState.WaitingForOrder);
+            });
+        }
+        else
+        {
+            ChangeState(CustomerState.WaitingForOrder);
+        }
     }
 
     void ShowWrongOrderDialog()
@@ -582,6 +627,18 @@ public class Customer : SequenceStep
     {
         if (hasReceivedDocument && hasReceivedFood && hasReceivedDrink)
         {
+            // [TUTORIAL] Hoàn thành khách đầu tiên
+            if (!hasDoneTutorial)
+            {
+                hasDoneTutorial = true; // Đánh dấu đã xong tut
+                if (ObjectiveManager.Instance != null)
+                {
+                    ObjectiveManager.Instance.ShowObjective("Hãy luôn chú ý những yêu cầu đặc biệt của khách hàng");
+                    // Tắt tutorial sau 6 giây
+                    StartCoroutine(HideTutorialRoutine(6f));
+                }
+            }
+
             if (customerData.postDeliveryDialogNodes != null && customerData.postDeliveryDialogNodes.Count > 0)
             {
                 ChangeState(CustomerState.Talking);
@@ -696,7 +753,7 @@ public class Customer : SequenceStep
             }
         }
         
-        if (DocumentManager.Instance != null)
+        if (DocumentManager.Instance != null && DocumentManager.Instance.CurrentCustomer == customerData)
         {
             DocumentManager.Instance.SetCurrentCustomer(null);
         }
@@ -737,6 +794,15 @@ public class Customer : SequenceStep
         {
             CompleteStep(); // Báo cho SequenceManager biết để gọi sự kiện tiếp theo
             gameObject.SetActive(false); // Ẩn khách đi
+        }
+    }
+
+    IEnumerator HideTutorialRoutine(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (ObjectiveManager.Instance != null)
+        {
+            ObjectiveManager.Instance.HideObjective();
         }
     }
 }

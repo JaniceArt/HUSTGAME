@@ -203,7 +203,17 @@ public class DocumentManager : MonoBehaviour
             packedPaperOnTable.SetActive(true);
         }
 
-        Debug.Log("[Document] Đã đóng gói xong! Bấm E để nhặt hoặc V để soi.");
+        Debug.Log("[Document] Đã đóng gói xong! Bấm Chuột trái để soi.");
+    }
+
+    /// <summary>
+    /// Gọi khi người chơi bấm chuột trái vào giấy đã đóng gói.
+    /// Trực tiếp mở màn hình soi tài liệu.
+    /// </summary>
+    public void ViewPackedPaperDirectly()
+    {
+        Debug.Log("[Document] Bắt đầu soi tài liệu đã đóng gói!");
+        ToggleViewCanvas();
     }
 
     /// <summary>

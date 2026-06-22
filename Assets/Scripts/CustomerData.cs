@@ -57,6 +57,10 @@ public class CustomerData : ScriptableObject
     [Tooltip("Danh sách các câu thoại lúc mới vào. Bạn có thể chèn Lựa Chọn vào bất kỳ câu nào!")]
     public List<DialogNode> dialogNodes;
 
+    [Tooltip("Câu nói 1 dòng khi người chơi lỡ quên order và click vào khách để hỏi lại")]
+    [TextArea(2, 4)]
+    public string repeatOrderDialog = "Tôi nhắc lại nhé, tôi cần...";
+
     [Header("=== TÍNH NĂNG ĐẶC BIỆT ===")]
     [Tooltip("Khách này có ném USB ra bàn để mình cắm vào máy tính không?")]
     public bool hasUsb = false;
