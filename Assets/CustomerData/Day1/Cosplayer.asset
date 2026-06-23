@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9327c051a4f2bfc41b31569631c83a0e, type: 3}
+  m_Name: Cosplayer
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerData
+  customerName: WhiteHair
+  paysMoney: 1
+  leavesAngry: 0
+  dialogNodes:
+  - sentence: "Cho ch\u1ECB 1 x\xF4i \u0111\u1EA7y \u0111\u1EE7 kh\xF4ng t\u01B0\u01A1ng
+      \u1EDBt, kh\xF4ng tr\u1EE9ng"
+    hasChoices: 1
+    choices:
+    - choiceText: "Ch\u1ECB m\u1EB7c \u0111\u1ED3 g\xEC k\xEC z"
+      replyText: "K\u1EC7 ch\u1ECB em, in th\xEAm file g\u1EEDi qua zalo 1 b\u1EA3n
+        c\xF3 m\xE0u n\u1EEFa"
+    - choiceText: "V\xE2ng \u1EA1"
+      replyText: "Um, in th\xEAm file g\u1EEDi qua zalo 1 b\u1EA3n kh\xF4ng m\xE0u
+        n\u1EEFa"
+  repeatOrderDialog: "Cho ch\u1ECB 1 x\xF4i \u0111\u1EA7y \u0111\u1EE7 kh\xF4ng t\u01B0\u01A1ng
+    kh\xF4ng tr\u1EE9ng, 1 b\u1EA3n in c\xF3 m\xE0u"
+  hasUsb: 0
+  postDeliveryDialogNodes: []
+  wrongOrderDialog: "Giao c\xED jz"
+  playerReactionAfterReading: "??? b\xE0 n\xE0y in jz"
+  playerReactionAfterCustomerLeaves: 
+  delayBeforeReaction: 3
+  needsDocument: 1
+  documentImage: {fileID: 21300000, guid: b19cdd7d204b9274687655e7efda8731, type: 3}
+  requiresColor: 1
+  requiredCopies: 1
+  needsFood: 1
+  requiredFoodQuantity: 1
+  requiredToppings: 000000000100000002000000
+  walkingSound: {fileID: 0}
+  walkingSoundVolume: 1
+  angrySound: {fileID: 0}
+  angrySoundVolume: 1
+  needsDrink: 0
+  requiredDrink: 0

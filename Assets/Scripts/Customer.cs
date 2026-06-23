@@ -143,8 +143,7 @@ public class Customer : SequenceStep
         {
             bool walking = (currentState == CustomerState.WalkingIn || currentState == CustomerState.WalkingOut);
             animator.SetBool(isWalkingParam, walking);
-            
-            // animator.SetBool(isAngryParam, isAngry); // Tạm tắt để khỏi báo lỗi IsAngry
+            animator.SetBool(isAngryParam, isAngry);
         }
     }
 
@@ -410,6 +409,16 @@ public class Customer : SequenceStep
         }
 
         hasToldOrder = true;
+
+        // Nếu khách này được tick 'Leaves Angry', họ sẽ dỗi và bỏ đi LUÔN sau khi nói chuyện
+        // Không chờ đồ ăn đồ uống gì nữa!
+        if (customerData != null && customerData.leavesAngry)
+        {
+            Debug.Log($"[Customer] Khách {customerData.customerName} tức giận bỏ về ngay sau hội thoại!");
+            FinishAndWalkOut();
+            return;
+        }
+
         ChangeState(CustomerState.WaitingForOrder);
 
         // [TUTORIAL] Sau khi khách nói xong order
@@ -686,6 +695,11 @@ public class Customer : SequenceStep
         }
         else
         {
+            // Tắt trạng thái tức giận (nếu có do đợi lâu) để khách đi bộ bình thường ra cửa!
+            isAngry = false;
+            if (animator != null) animator.SetBool(isAngryParam, false);
+            PlayAngrySound(false);
+
             ChangeState(CustomerState.WalkingOut);
             StartCoroutine(WalkOutRoutine());
         }

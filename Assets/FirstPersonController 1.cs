@@ -23,7 +23,7 @@ public class FirstPersonController : MonoBehaviour
     private Vector2 moveInput;
     private Vector2 lookInput;
 
-    private float xRotation = 0f;
+    public float xRotation = 0f;
     private bool isGrounded;
 
     private void Awake()

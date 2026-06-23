@@ -113,10 +113,13 @@ public class DocumentManager : MonoBehaviour
             ToggleViewCanvas();
         }
 
-        // Bấm ESC để thoát xem ảnh
-        if (Keyboard.current.escapeKey.wasPressedThisFrame && isViewingDocument)
+        // Bấm ESC hoặc Chuột Trái để thoát xem ảnh
+        if (isViewingDocument)
         {
-            ToggleViewCanvas();
+            if (Keyboard.current.escapeKey.wasPressedThisFrame || Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                ToggleViewCanvas();
+            }
         }
     }
 

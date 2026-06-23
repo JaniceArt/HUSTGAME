@@ -25,6 +25,10 @@ public class IntroCutsceneStep : SequenceStep
     [Tooltip("Thời gian mờ dần/sáng dần (giây)")]
     public float fadeDuration = 1.5f;
 
+    [Header("UI Tùy chọn")]
+    [Tooltip("Kéo các UI cần GIẤU ĐI lúc Cutscene đang chạy vào đây (VD: HintCanvas)")]
+    public GameObject[] objectsToHide;
+
     [Header("=== ÂM THANH ===")]
     [Tooltip("Âm thanh phát ra lúc mới vào game (VD: Tiếng chim hót, tiếng thở dài...)")]
     public AudioClip introSound;
@@ -33,6 +37,7 @@ public class IntroCutsceneStep : SequenceStep
     public AudioClip transitionSound;
 
     private AudioSource audioSource;
+    private GameObject hiddenHintCanvas;
 
     private void Awake()
     {
@@ -53,6 +58,19 @@ public class IntroCutsceneStep : SequenceStep
         {
             Rigidbody rb = player.GetComponent<Rigidbody>();
             if (rb != null) rb.linearVelocity = Vector3.zero;
+
+            // Ép hướng nhìn về phía của gameplaySpawnPoint để không bị úp mặt vào tường lúc Cutscene
+            if (gameplaySpawnPoint != null)
+            {
+                player.transform.rotation = gameplaySpawnPoint.rotation;
+                player.xRotation = 0f; // Đưa góc cúi/ngẩng về thẳng đứng
+                
+                Camera cam = player.GetComponentInChildren<Camera>();
+                if (cam != null)
+                {
+                    cam.transform.localRotation = Quaternion.identity;
+                }
+            }
         }
 
         // Bắt đầu chuỗi kịch bản
@@ -61,6 +79,22 @@ public class IntroCutsceneStep : SequenceStep
 
     IEnumerator CutsceneRoutine()
     {
+        // Giấu các UI không mong muốn (VD: HintCanvas được kéo vào)
+        if (objectsToHide != null)
+        {
+            foreach (GameObject obj in objectsToHide)
+            {
+                if (obj != null) obj.SetActive(false);
+            }
+        }
+
+        // Tự động tìm và giấu luôn HintCanvas cho chắc cú (khỏi cần kéo thả)
+        hiddenHintCanvas = GameObject.Find("HintCanvas");
+        if (hiddenHintCanvas != null)
+        {
+            hiddenHintCanvas.SetActive(false);
+        }
+
         // Đảm bảo màn hình hoàn toàn sáng (không đen) lúc mới vào game
         if (fadeCanvas != null)
         {
@@ -166,16 +200,24 @@ public class IntroCutsceneStep : SequenceStep
             fadeCanvas.alpha = 0f;
         }
 
+        // Bật lại các UI đã giấu đi
+        if (objectsToHide != null)
+        {
+            foreach (GameObject obj in objectsToHide)
+            {
+                if (obj != null) obj.SetActive(true);
+            }
+        }
+
+        if (hiddenHintCanvas != null)
+        {
+            hiddenHintCanvas.SetActive(true);
+        }
+
         // Mở khoá cho phép người chơi di chuyển và xoay chuột bình thường
         FirstPersonController.CanMove = true; 
 
-        // Tự động bật nhắc nhở người chơi kéo cửa
-        if (ObjectiveManager.Instance != null)
-        {
-            ObjectiveManager.Instance.ShowObjective("Kéo cửa cuốn để mở tiệm");
-        }
-        
-        // CỐ TÌNH KHÔNG GỌI CompleteStep() Ở ĐÂY.
-        // Để kịch bản đứng im chờ người chơi ra kéo cửa cuốn. Khi cửa mở, cửa cuốn sẽ gọi NextStep().
+        // Tự động kết thúc Cutscene để nhường quyền cho WaitForDoorOpenStep
+        CompleteStep();
     }
 }

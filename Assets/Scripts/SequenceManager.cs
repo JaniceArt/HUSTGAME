@@ -21,6 +21,7 @@ public class SequenceManager : MonoBehaviour
 
     public int CurrentStepIndex => currentStepIndex;
     public bool IsFinished => hasStarted && currentStepIndex >= steps.Count;
+    public SequenceStep CurrentStep => (currentStepIndex >= 0 && currentStepIndex < steps.Count) ? steps[currentStepIndex] : null;
 
     void Awake()
     {
@@ -82,12 +83,7 @@ public class SequenceManager : MonoBehaviour
         else
         {
             Debug.Log("[Sequence] TOÀN BỘ KỊCH BẢN ĐÃ HOÀN THÀNH!");
-            
-            // Kịch bản kết thúc -> Yêu cầu người chơi đóng cửa tiệm
-            if (ObjectiveManager.Instance != null)
-            {
-                ObjectiveManager.Instance.ShowObjective("Đóng cửa tiệm");
-            }
+            // Nếu bạn muốn báo hết game, có thể bật UI Hết Game ở đây!
         }
     }
 

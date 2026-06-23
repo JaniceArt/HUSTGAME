@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9327c051a4f2bfc41b31569631c83a0e, type: 3}
+  m_Name: Fatty 1
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerData
+  customerName: HustBoy
+  paysMoney: 0
+  leavesAngry: 1
+  dialogNodes:
+  - sentence: "4 x\xF4i \u0111\u1EA7y \u0111\u1EE7"
+    hasChoices: 1
+    choices:
+    - choiceText: "H\u1EBFt x\xF4i r\u1ED3i em"
+      replyText: "C\xE1i g\xEC????"
+    - choiceText: "Kh\xF4ng l\xE0m cho \u0111\xE2u l\xEAu l\xEAu"
+      replyText: "C\xE1i g\xEC????"
+  repeatOrderDialog: "T\xF4i nh\u1EAFc l\u1EA1i nh\xE9, t\xF4i c\u1EA7n..."
+  hasUsb: 0
+  postDeliveryDialogNodes:
+  - sentence: "L\xE0m l\xE2u kinh kh\u1EE7ng"
+    hasChoices: 0
+    choices: []
+  wrongOrderDialog: "Sai r\u1ED3i!!"
+  playerReactionAfterReading: 
+  playerReactionAfterCustomerLeaves: "\u0110\u1EEBng quay l\u1EA1i n\u1EEFa hic.."
+  delayBeforeReaction: 3
+  needsDocument: 0
+  documentImage: {fileID: 21300000, guid: beed18ef58443664f85ee29620bd56a3, type: 3}
+  requiresColor: 0
+  requiredCopies: 1
+  needsFood: 0
+  requiredFoodQuantity: 1
+  requiredToppings: 0100000004000000020000000300000000000000
+  walkingSound: {fileID: 8300000, guid: 9bb88a41eecfbd246824a354db1b43d6, type: 3}
+  walkingSoundVolume: 0.299
+  angrySound: {fileID: 8300000, guid: 8d54f926bc7118f4daddfa914da474ed, type: 3}
+  angrySoundVolume: 0.263
+  needsDrink: 1
+  requiredDrink: 1

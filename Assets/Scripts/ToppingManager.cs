@@ -151,10 +151,7 @@ public class ToppingManager : MonoBehaviour
     public void MarkFoodAsWrong()
     {
         isHoldingWrongFood = true;
-        if (eatTutorialUI != null)
-        {
-            eatTutorialUI.SetActive(true); // Bật chữ hướng dẫn bấm V
-        }
+        // Đã xóa UI hướng dẫn ăn xôi theo yêu cầu
     }
 
     public void EatFood()
@@ -167,11 +164,6 @@ public class ToppingManager : MonoBehaviour
         if (heldFoodInHand != null)
         {
             heldFoodInHand.SetActive(false); // Ẩn cục xôi trên tay
-        }
-
-        if (eatTutorialUI != null)
-        {
-            eatTutorialUI.SetActive(false); // Tắt chữ hướng dẫn
         }
 
         if (audioSource != null && eatSound != null)

@@ -51,6 +51,7 @@ public class PrintCanvasUI : MonoBehaviour
     [Tooltip("Máy in chạy mất bao lâu trước khi phọt giấy ra (giây)")]
     public float printDuration = 2.0f;
     public AudioClip printSound;
+    public AudioClip clickSound; // Âm thanh bấm nút UI
     [Range(0f, 1f)] public float printVolume = 1f;
     [Range(0.1f, 3f)] public float printPitch = 1f;
     private AudioSource printAudioSource;
@@ -61,9 +62,9 @@ public class PrintCanvasUI : MonoBehaviour
     private const int MIN_QTY = 1;
     private const int MAX_QTY = 99;
 
-    // Màu để phân biệt nút đang chọn / không chọn
-    private Color selectedColor   = new Color(0.3f, 0.8f, 0.4f, 1f);  // Xanh lá
-    private Color unselectedColor = new Color(0.4f, 0.4f, 0.4f, 1f);  // Xám
+    // Ảnh để phân biệt nút đang chọn / không chọn
+    public Sprite selectedSprite;
+    public Sprite unselectedSprite;
 
     // -------------------------------------------------------
 
@@ -91,8 +92,17 @@ public class PrintCanvasUI : MonoBehaviour
 
     // ===================== TOGGLE MÀU =====================
 
+    void PlayClickSound()
+    {
+        if (clickSound != null && printAudioSource != null)
+        {
+            printAudioSource.PlayOneShot(clickSound, 0.8f);
+        }
+    }
+
     void SelectColor()
     {
+        PlayClickSound();
         isColor = true;
         UpdateToggleVisuals();
         Debug.Log("[Printer] Chọn: In Màu");
@@ -100,6 +110,7 @@ public class PrintCanvasUI : MonoBehaviour
 
     void SelectBW()
     {
+        PlayClickSound();
         isColor = false;
         UpdateToggleVisuals();
         Debug.Log("[Printer] Chọn: In Đen Trắng");
@@ -107,22 +118,31 @@ public class PrintCanvasUI : MonoBehaviour
 
     void UpdateToggleVisuals()
     {
-        if (colorButtonBg != null)
-            colorButtonBg.color = isColor ? selectedColor : unselectedColor;
-        if (bwButtonBg != null)
-            bwButtonBg.color = isColor ? unselectedColor : selectedColor;
+        if (colorButtonBg != null && selectedSprite != null && unselectedSprite != null)
+        {
+            colorButtonBg.sprite = isColor ? selectedSprite : unselectedSprite;
+            colorButtonBg.color = Color.white; // Xóa màu ép cũ nếu có
+        }
+        
+        if (bwButtonBg != null && selectedSprite != null && unselectedSprite != null)
+        {
+            bwButtonBg.sprite = isColor ? unselectedSprite : selectedSprite;
+            bwButtonBg.color = Color.white; // Xóa màu ép cũ nếu có
+        }
     }
 
     // ===================== SỐ LƯỢNG =====================
 
     void IncreaseQuantity()
     {
+        PlayClickSound();
         quantity = Mathf.Min(quantity + 1, MAX_QTY);
         UpdateQuantityText();
     }
 
     void DecreaseQuantity()
     {
+        PlayClickSound();
         quantity = Mathf.Max(quantity - 1, MIN_QTY);
         UpdateQuantityText();
     }
@@ -137,6 +157,7 @@ public class PrintCanvasUI : MonoBehaviour
 
     void OnPrintPressed()
     {
+        PlayClickSound();
         StartCoroutine(PrintRoutine());
     }
 

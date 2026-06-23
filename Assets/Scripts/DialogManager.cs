@@ -74,8 +74,10 @@ public class DialogManager : MonoBehaviour
             return;
         }
 
-        // Khóa di chuyển của người chơi khi đang mở bảng thoại
+        // Khóa di chuyển và hiện chuột
         FirstPersonController.CanMove = false;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
 
         currentNodes = nodes;
         onDialogComplete = onComplete;
@@ -194,7 +196,56 @@ public class DialogManager : MonoBehaviour
         if (bounceCoroutine != null) StopCoroutine(bounceCoroutine);
         nextIndicatorText.gameObject.SetActive(false);
 
+        // Tự động gán sự kiện cho Button (nếu có)
+        for (int i = 0; i < choiceTexts.Count && i < node.choices.Count; i++)
+        {
+            UnityEngine.UI.Button btn = choiceTexts[i].GetComponent<UnityEngine.UI.Button>();
+            if (btn != null)
+            {
+                btn.onClick.RemoveAllListeners();
+                int capturedIndex = i; // Bắt buộc phải tạo biến tạm cho closure
+                btn.onClick.AddListener(() => OnChoiceButtonClicked(capturedIndex));
+
+                // Thêm EventTrigger để đổi màu vàng khi di chuột (Hover)
+                UnityEngine.EventSystems.EventTrigger trigger = btn.gameObject.GetComponent<UnityEngine.EventSystems.EventTrigger>();
+                if (trigger == null) trigger = btn.gameObject.AddComponent<UnityEngine.EventSystems.EventTrigger>();
+                trigger.triggers.Clear();
+                
+                UnityEngine.EventSystems.EventTrigger.Entry entry = new UnityEngine.EventSystems.EventTrigger.Entry { eventID = UnityEngine.EventSystems.EventTriggerType.PointerEnter };
+                entry.callback.AddListener((data) => { 
+                    selectedChoiceIndex = capturedIndex; 
+                    UpdateChoiceUI(node); 
+                });
+                trigger.triggers.Add(entry);
+            }
+        }
+
         UpdateChoiceUI(node);
+    }
+
+    public void OnChoiceButtonClicked(int choiceIndex)
+    {
+        if (!isChoosing) return;
+
+        DialogNode currentNode = currentNodes[currentNodeIndex - 1];
+        if (choiceIndex < 0 || choiceIndex >= currentNode.choices.Count) return;
+
+        finalizedChoiceResult = choiceIndex;
+        DialogChoice chosen = currentNode.choices[finalizedChoiceResult];
+        
+        choicesContainer.SetActive(false);
+        isChoosing = false;
+
+        if (!string.IsNullOrEmpty(chosen.replyText))
+        {
+            isShowingReply = true;
+            if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+            typingCoroutine = StartCoroutine(TypeSentence(chosen.replyText));
+        }
+        else
+        {
+            DisplayNextNode();
+        }
     }
 
     void HandleChoiceInput()
@@ -213,26 +264,10 @@ public class DialogManager : MonoBehaviour
             if (selectedChoiceIndex >= currentNode.choices.Count) selectedChoiceIndex = 0;
             UpdateChoiceUI(currentNode);
         }
-        else if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame || Mouse.current.leftButton.wasPressedThisFrame)
+        else if (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.eKey.wasPressedThisFrame)
         {
-            finalizedChoiceResult = selectedChoiceIndex;
-            DialogChoice chosen = currentNode.choices[finalizedChoiceResult];
-            
-            choicesContainer.SetActive(false);
-            isChoosing = false;
-
-            if (!string.IsNullOrEmpty(chosen.replyText))
-            {
-                // Có câu trả lời -> gõ chữ câu trả lời ra
-                isShowingReply = true;
-                if (typingCoroutine != null) StopCoroutine(typingCoroutine);
-                typingCoroutine = StartCoroutine(TypeSentence(chosen.replyText));
-            }
-            else
-            {
-                // Không có câu trả lời -> đi tiếp câu thoại hoặc kết thúc
-                DisplayNextNode();
-            }
+            // Bấm phím E hoặc Space để chọn bằng bàn phím
+            OnChoiceButtonClicked(selectedChoiceIndex);
         }
     }
 
@@ -258,6 +293,8 @@ public class DialogManager : MonoBehaviour
         if (DocumentManager.Instance == null || !DocumentManager.Instance.IsViewingDocument)
         {
             FirstPersonController.CanMove = true;
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
 
         onDialogComplete?.Invoke(choiceResult);

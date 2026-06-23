@@ -89,20 +89,30 @@ public class SlidingDoor : MonoBehaviour
         _isOpen = !_isOpen;
         StartCoroutine(_isOpen ? CoOpen() : CoClose());
 
-        if (SequenceManager.Instance != null)
+        if (SequenceManager.Instance != null && SequenceManager.Instance.CurrentStep != null)
         {
-            if (_isOpen && !SequenceManager.Instance.IsFinished)
+            if (_isOpen)
             {
-                // Mở cửa -> Hoàn thành nhiệm vụ "Mở cửa tiệm"
-                if (ObjectiveManager.Instance != null) ObjectiveManager.Instance.CompleteObjective();
-                
-                // Báo cho hệ thống nhảy sang bước Khách Hàng (HustBoy)
-                SequenceManager.Instance.NextStep();
+                // Nếu đang ở bước chờ mở cửa (thay thế luôn cho IntroCutsceneStep cũ)
+                if (SequenceManager.Instance.CurrentStep is WaitForDoorOpenStep waitDoorStep)
+                {
+                    waitDoorStep.OnDoorOpened();
+                }
+                else if (SequenceManager.Instance.CurrentStepIndex == 0)
+                {
+                    // Dự phòng: Nếu người chơi xóa IntroCutsceneStep và để Khách hàng ở Bước 1,
+                    // kéo cửa lần đầu tiên vẫn sẽ bắt đầu ngày mới!
+                    if (ObjectiveManager.Instance != null) ObjectiveManager.Instance.CompleteObjective();
+                    SequenceManager.Instance.NextStep();
+                }
             }
-            else if (!_isOpen && SequenceManager.Instance.IsFinished)
+            else if (!_isOpen)
             {
-                // Đóng cửa khi đã hết khách -> Hoàn thành nhiệm vụ "Đóng cửa tiệm" và Load Ngày Mới
-                if (ObjectiveManager.Instance != null) ObjectiveManager.Instance.CompleteObjective();
+                // Nếu đang ở bước chờ đóng cửa để kết thúc ngày
+                if (SequenceManager.Instance.CurrentStep is DayEndStep dayEnd)
+                {
+                    dayEnd.OnDoorClosed();
+                }
             }
         }
     }
