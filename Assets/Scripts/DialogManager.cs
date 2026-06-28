@@ -43,6 +43,10 @@ public class DialogManager : MonoBehaviour
     private Coroutine typingCoroutine;
     private Coroutine bounceCoroutine;
 
+    private bool isAutoAdvance = false;
+    private float autoAdvanceDelay = 2f;
+    private float customTypingSpeed = -1f;
+
     void Awake()
     {
         if (Instance != null && Instance != this) Destroy(gameObject);
@@ -85,6 +89,8 @@ public class DialogManager : MonoBehaviour
         finalizedChoiceResult = -1;
         isChoosing = false;
         isShowingReply = false;
+        isAutoAdvance = false;
+        customTypingSpeed = -1f;
 
         dialogPanel.SetActive(true);
         choicesContainer.SetActive(false);
@@ -92,6 +98,42 @@ public class DialogManager : MonoBehaviour
         
         DisplayNextNode();
     }
+
+    public void StartAutoDialogSequence(List<DialogNode> nodes, Action<int> onComplete, float speedMultiplier = 1f, float delayBetweenNodes = 1.5f)
+    {
+        if (nodes == null || nodes.Count == 0)
+        {
+            onComplete?.Invoke(-1);
+            return;
+        }
+
+        isAutoAdvance = true;
+        autoAdvanceDelay = delayBetweenNodes;
+        customTypingSpeed = typingSpeed * speedMultiplier;
+
+        currentNodes = nodes;
+        onDialogComplete = onComplete;
+        currentNodeIndex = 0;
+        finalizedChoiceResult = -1;
+        isChoosing = false;
+        isShowingReply = false;
+
+        dialogPanel.SetActive(true);
+        choicesContainer.SetActive(false);
+        if (nextIndicatorText != null) nextIndicatorText.gameObject.SetActive(false);
+        
+        DisplayNextNode();
+    }
+
+    public void ForceStopDialog()
+    {
+        if (typingCoroutine != null) StopCoroutine(typingCoroutine);
+        if (bounceCoroutine != null) StopCoroutine(bounceCoroutine);
+        if (audioSource != null && audioSource.isPlaying) audioSource.Stop();
+        
+        EndDialog(-1);
+    }
+
 
     void Update()
     {
@@ -135,7 +177,7 @@ public class DialogManager : MonoBehaviour
             if (typingCoroutine != null) StopCoroutine(typingCoroutine);
             if (bounceCoroutine != null) StopCoroutine(bounceCoroutine);
             
-            nextIndicatorText.gameObject.SetActive(false);
+            if (nextIndicatorText != null && !isAutoAdvance) nextIndicatorText.gameObject.SetActive(false);
             isWaitingForInput = false;
             
             typingCoroutine = StartCoroutine(TypeSentence(node.sentence));
@@ -162,7 +204,8 @@ public class DialogManager : MonoBehaviour
                 audioSource.PlayOneShot(typingSound, 0.5f);
             }
 
-            yield return new WaitForSeconds(typingSpeed);
+            float speedToUse = customTypingSpeed > 0 ? customTypingSpeed : typingSpeed;
+            yield return new WaitForSeconds(speedToUse);
         }
 
         // Tắt âm thanh ngay khi chạy hết chữ
@@ -172,8 +215,18 @@ public class DialogManager : MonoBehaviour
         }
 
         isTyping = false;
-        isWaitingForInput = true;
-        bounceCoroutine = StartCoroutine(BounceIndicator());
+
+        if (isAutoAdvance)
+        {
+            // Tự động đi tiếp không cần chờ bấm phím
+            yield return new WaitForSeconds(autoAdvanceDelay);
+            DisplayNextNode();
+        }
+        else
+        {
+            isWaitingForInput = true;
+            bounceCoroutine = StartCoroutine(BounceIndicator());
+        }
     }
 
     IEnumerator BounceIndicator()
@@ -282,6 +335,9 @@ public class DialogManager : MonoBehaviour
         }
     }
 
+    public bool UnlockPlayerOnComplete = true; // Cho phép tắt mở tính năng tự động mở khóa
+    public bool AllowInteraction = false; // Cho phép tương tác (mở cửa, nhặt đồ) dù đang có thoại
+
     void EndDialog(int choiceResult)
     {
         dialogPanel.SetActive(false);
@@ -290,12 +346,16 @@ public class DialogManager : MonoBehaviour
         isWaitingForInput = false;
 
         // Cho phép người chơi di chuyển lại sau khi đóng bảng thoại (nếu không đang soi tài liệu)
-        if (DocumentManager.Instance == null || !DocumentManager.Instance.IsViewingDocument)
+        if (UnlockPlayerOnComplete && (DocumentManager.Instance == null || !DocumentManager.Instance.IsViewingDocument))
         {
             FirstPersonController.CanMove = true;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
         }
+
+        isAutoAdvance = false; // Reset cờ tự chạy
+        customTypingSpeed = -1f;
+        AllowInteraction = false; // Reset cờ cho phép tương tác
 
         onDialogComplete?.Invoke(choiceResult);
     }

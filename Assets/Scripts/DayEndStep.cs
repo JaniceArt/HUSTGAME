@@ -36,6 +36,10 @@ public class DayEndStep : SequenceStep
     public AudioClip transitionSound;
     private AudioSource audioSource;
 
+    [Header("=== THOẠI (Tùy chọn) ===")]
+    [Tooltip("Danh sách thoại tự nhẩm trước khi đóng cửa")]
+    public System.Collections.Generic.List<DialogNode> endOfDayDialogs;
+
     private bool isWaitingForDoor = false;
 
     private void Awake()
@@ -47,6 +51,30 @@ public class DayEndStep : SequenceStep
 
     public override void StartStep()
     {
+        // Nếu có thoại thì phát thoại trước, xong mới hiện nhiệm vụ
+        if (DialogManager.Instance != null && endOfDayDialogs != null && endOfDayDialogs.Count > 0)
+        {
+            DialogManager.Instance.StartDialogSequence(endOfDayDialogs, OnDialogFinished);
+        }
+        else
+        {
+            OnDialogFinished(0); // Không có thoại thì chạy luôn
+        }
+    }
+
+    private void OnDialogFinished(int finalNodeId)
+    {
+        SlidingDoor mainDoor = FindObjectOfType<SlidingDoor>();
+        if (mainDoor != null && !mainDoor.IsOpen)
+        {
+            // Cửa ĐÃ đóng sẵn rồi (ví dụ do sự kiện hù dọa trước đó ép đóng cửa)
+            // Không cần bắt người chơi phải mở ra đóng lại nữa, kết thúc ngày luôn!
+            Debug.Log("[DayEndStep] Cửa đã đóng sẵn! Tự động kết thúc ngày.");
+            isWaitingForDoor = true; // Set cờ true tạm để hàm OnDoorClosed chạy được
+            OnDoorClosed();
+            return;
+        }
+
         isWaitingForDoor = true;
         
         // Báo nhiệm vụ đóng cửa tiệm
@@ -83,10 +111,22 @@ public class DayEndStep : SequenceStep
         // Khóa người chơi
         FirstPersonController.CanMove = false; 
 
+        // Cập nhật nội dung chữ trước nhưng GIẤU ĐI
+        if (dayTextUI != null)
+        {
+            dayTextUI.gameObject.SetActive(false);
+            dayTextUI.text = "Ngày " + nextDayNumber;
+        }
+        if (dayTextTMP != null)
+        {
+            dayTextTMP.gameObject.SetActive(false);
+            dayTextTMP.text = "Ngày " + nextDayNumber;
+        }
+
         if (audioSource != null && transitionSound != null)
             audioSource.PlayOneShot(transitionSound);
 
-        // 1. Mờ đen dần
+        // Mờ đen dần (Lúc này chỉ có màn hình đen, không có chữ)
         if (fadeCanvas != null)
         {
             float t = 0f;
@@ -99,17 +139,9 @@ public class DayEndStep : SequenceStep
             fadeCanvas.alpha = 1f;
         }
 
-        // Hiện chữ Day X
-        if (dayTextUI != null)
-        {
-            dayTextUI.gameObject.SetActive(true);
-            dayTextUI.text = "DAY " + nextDayNumber;
-        }
-        if (dayTextTMP != null)
-        {
-            dayTextTMP.gameObject.SetActive(true);
-            dayTextTMP.text = "DAY " + nextDayNumber;
-        }
+        // Đen hẳn rồi mới BẬT chữ lên
+        if (dayTextUI != null) dayTextUI.gameObject.SetActive(true);
+        if (dayTextTMP != null) dayTextTMP.gameObject.SetActive(true);
 
         // 2. Chờ màn hình đen
         yield return new WaitForSeconds(blackScreenDuration);
@@ -117,6 +149,12 @@ public class DayEndStep : SequenceStep
         // Tắt chữ
         if (dayTextUI != null) dayTextUI.gameObject.SetActive(false);
         if (dayTextTMP != null) dayTextTMP.gameObject.SetActive(false);
+
+        // Reset các vật phẩm cho ngày mới
+        if (ToppingManager.Instance != null)
+        {
+            ToppingManager.Instance.RefillEggs();
+        }
 
         // 3. Dịch chuyển
         if (nextDaySpawnPoint != null)
@@ -129,6 +167,10 @@ public class DayEndStep : SequenceStep
 
                 player.transform.position = nextDaySpawnPoint.position;
                 player.transform.rotation = nextDaySpawnPoint.rotation;
+                player.xRotation = 0f; // Reset góc cúi/ngẩng
+
+                Camera cam = player.GetComponentInChildren<Camera>();
+                if (cam != null) cam.transform.localRotation = Quaternion.identity;
 
                 if (cc != null) cc.enabled = true;
             }

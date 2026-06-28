@@ -2,26 +2,47 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+[System.Serializable]
+public class GameDay
+{
+    public string dayName = "Ngày X";
+
+    [Tooltip("Sự kiện bắt đầu ngày (VD: Chờ mở cửa)")]
+    public SequenceStep dayStart;
+
+    [Tooltip("Các sự kiện ở giữa (Khách hàng, hù ma, v.v...)")]
+    public List<SequenceStep> events = new List<SequenceStep>();
+
+    [Tooltip("Sự kiện kết thúc ngày (VD: Mờ đen màn hình)")]
+    public SequenceStep dayEnd;
+}
+
 /// <summary>
-/// Quản lý chuỗi sự kiện tuyến tính trong game (Ví dụ: Khách A -> Máy bay giấy -> Khách B)
-/// Gắn lên 1 GameManager object trong Scene.
+/// Quản lý chuỗi sự kiện tuyến tính trong game chia theo Ngày.
 /// </summary>
 public class SequenceManager : MonoBehaviour
 {
     public static SequenceManager Instance { get; private set; }
 
-    [Tooltip("Danh sách các bước trong kịch bản. Chạy từ trên xuống dưới.")]
-    public List<SequenceStep> steps = new List<SequenceStep>();
+    [Header("=== MỞ ĐẦU ===")]
+    [Tooltip("Cutscene giới thiệu ban đầu (chạy trước cả Ngày 1)")]
+    public SequenceStep introCutscene;
 
+    [Header("=== CÁC NGÀY TRONG GAME ===")]
+    public List<GameDay> days = new List<GameDay>();
+
+    [Header("=== CÀI ĐẶT ===")]
     [Tooltip("Nếu true: Tự động chạy ngay khi game bắt đầu. Nếu false: Chờ hàm StartSequence() được gọi.")]
     public bool startAutomatically = false;
 
+    // --- State Nội Bộ ---
+    private List<SequenceStep> flattenedSteps = new List<SequenceStep>();
     private int currentStepIndex = 0;
     private bool hasStarted = false;
 
     public int CurrentStepIndex => currentStepIndex;
-    public bool IsFinished => hasStarted && currentStepIndex >= steps.Count;
-    public SequenceStep CurrentStep => (currentStepIndex >= 0 && currentStepIndex < steps.Count) ? steps[currentStepIndex] : null;
+    public bool IsFinished => hasStarted && currentStepIndex >= flattenedSteps.Count;
+    public SequenceStep CurrentStep => (currentStepIndex >= 0 && currentStepIndex < flattenedSteps.Count) ? flattenedSteps[currentStepIndex] : null;
 
     void Awake()
     {
@@ -35,55 +56,66 @@ public class SequenceManager : MonoBehaviour
 
     void Start()
     {
-        // Vô hiệu hóa tất cả các bước (ngoại trừ bước đầu tiên) lúc khởi đầu
-        foreach (var step in steps)
+        // Trải phẳng tất cả các bước thành 1 mảng tuyến tính duy nhất để dễ chạy
+        FlattenSteps();
+
+        // Vô hiệu hóa tất cả các bước lúc khởi đầu
+        foreach (var step in flattenedSteps)
         {
             if (step != null && step.gameObject != this.gameObject)
                 step.gameObject.SetActive(false);
         }
 
-        // Bắt đầu bước đầu tiên nếu được gán tự động chạy
         if (startAutomatically)
         {
             StartSequence();
         }
     }
 
-    /// <summary>
-    /// Gọi hàm này (VD: Từ SlidingDoor) để bắt đầu kịch bản nếu startAutomatically = false.
-    /// </summary>
-    public void StartSequence()
+    void FlattenSteps()
     {
-        if (hasStarted) return; // Không cho phép chạy lại nếu đã chạy rồi
-        hasStarted = true;
+        flattenedSteps.Clear();
 
-        if (steps.Count > 0 && steps[0] != null)
+        if (introCutscene != null) flattenedSteps.Add(introCutscene);
+
+        foreach (var day in days)
         {
-            currentStepIndex = 0;
-            StartCoroutine(RunStepRoutine(steps[currentStepIndex]));
+            if (day.dayStart != null) flattenedSteps.Add(day.dayStart);
+            foreach (var ev in day.events)
+            {
+                if (ev != null) flattenedSteps.Add(ev);
+            }
+            if (day.dayEnd != null) flattenedSteps.Add(day.dayEnd);
         }
     }
 
-    /// <summary>
-    /// Gọi bởi SequenceStep hiện tại khi nó đã hoàn thành nhiệm vụ.
-    /// Kích hoạt bước tiếp theo.
-    /// </summary>
+    public void StartSequence()
+    {
+        if (hasStarted) return;
+        hasStarted = true;
+
+        if (flattenedSteps.Count > 0 && flattenedSteps[0] != null)
+        {
+            currentStepIndex = 0;
+            StartCoroutine(RunStepRoutine(flattenedSteps[currentStepIndex]));
+        }
+    }
+
     public void NextStep()
     {
-        if (currentStepIndex < steps.Count)
+        if (currentStepIndex < flattenedSteps.Count)
         {
-            Debug.Log($"[Sequence] Đã hoàn thành bước {currentStepIndex}: {steps[currentStepIndex].gameObject.name}");
+            Debug.Log($"[Sequence] Đã hoàn thành bước {currentStepIndex}: {flattenedSteps[currentStepIndex].gameObject.name}");
             currentStepIndex++;
         }
 
-        if (currentStepIndex < steps.Count && steps[currentStepIndex] != null)
+        if (currentStepIndex < flattenedSteps.Count && flattenedSteps[currentStepIndex] != null)
         {
-            StartCoroutine(RunStepRoutine(steps[currentStepIndex]));
+            StartCoroutine(RunStepRoutine(flattenedSteps[currentStepIndex]));
         }
         else
         {
             Debug.Log("[Sequence] TOÀN BỘ KỊCH BẢN ĐÃ HOÀN THÀNH!");
-            // Nếu bạn muốn báo hết game, có thể bật UI Hết Game ở đây!
         }
     }
 
@@ -100,7 +132,7 @@ public class SequenceManager : MonoBehaviour
         step.StartStep();
 
         // Hiển thị nhiệm vụ lên màn hình (nếu có)
-        if (ObjectiveManager.Instance != null)
+        if (ObjectiveManager.Instance != null && !string.IsNullOrEmpty(step.objectiveTitle))
         {
             ObjectiveManager.Instance.ShowObjective(step.objectiveTitle);
         }

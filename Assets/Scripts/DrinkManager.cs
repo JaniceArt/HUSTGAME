@@ -13,6 +13,18 @@ public class DrinkManager : MonoBehaviour
     public bool isHoldingDrink = false;
     public DrinkType currentDrink = DrinkType.None;
 
+    public GameObject GetActiveDrinkObject()
+    {
+        if (!isHoldingDrink) return null;
+        switch (currentDrink)
+        {
+            case DrinkType.Coke: return handCoke;
+            case DrinkType.Pepsi: return handPepsi;
+            case DrinkType.Lavie: return handLavie;
+        }
+        return null;
+    }
+
     void Awake()
     {
         if (Instance == null) Instance = this;

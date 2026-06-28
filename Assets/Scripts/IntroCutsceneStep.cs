@@ -127,6 +127,9 @@ public class IntroCutsceneStep : SequenceStep
                 // Bật Dialog
                 DialogManager.Instance.StartDialogSequence(nodes, (result) => 
                 {
+                    // DialogManager tự động mở khoá camera khi xong, nên mình phải ép khoá lại ngay lập tức
+                    FirstPersonController.CanMove = false; 
+                    
                     // Người chơi bấm Space đọc xong hết thoại -> Gọi hàm dịch chuyển (lúc này mới hiện chữ Ngày 1)
                     StartCoroutine(TransitionToGameplay());
                 });

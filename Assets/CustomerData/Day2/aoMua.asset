@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9327c051a4f2bfc41b31569631c83a0e, type: 3}
+  m_Name: aoMua
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerData
+  customerName: ghostDAy2
+  paysMoney: 0
+  moneyPrefabToThrow: {fileID: 919132149155446097, guid: cd7f21eb59ae75e47b4ba35003a7e858, type: 3}
+  throwAmount: 5
+  moneyDropSound: {fileID: 0}
+  leavePuddlePrefab: {fileID: 919132149155446097, guid: 466c65ff40b61044d8d3bb6565167767, type: 3}
+  leavesAngry: 0
+  dancesWhileWaiting: 0
+  dancingSound: {fileID: 8300000, guid: 9006881b7c37570408814709d08658d0, type: 3}
+  dancingSoundVolume: 0.549
+  dialogNodes:
+  - sentence: "Cho t\xF4i 1 chai n\u01B0\u1EDBc kho\xE1ng"
+    hasChoices: 1
+    choices:
+    - choiceText: "Tr\u1EDDi c\xF3 m\u01B0a \u0111\xE2u m\xE0 m\u1EB7c \xE1o m\u01B0a
+        v\u1EADy anh b\u1EA1n"
+      replyText: ...
+    - choiceText: "\u01A0 tr\u1EDDi m\u01B0a t\u1EEB l\xFAc n\xE0o th\u1EBF"
+      replyText: ...
+  repeatOrderDialog: "1 n\u01B0\u1EDBc kho\xE1ng"
+  hasUsb: 0
+  postDeliveryDialogNodes: []
+  wrongOrderDialog: "Sai r\u1ED3i"
+  playerReactionAfterReading: "\xD4i tr\u1EDDi sao m\xE1y in b\u1ECB sao v\u1EADy
+    nh\u1EC9"
+  playerReactionAfterCustomerLeaves: 
+  delayBeforeReaction: 3
+  needsDocument: 0
+  documentImage: {fileID: 21300000, guid: beed18ef58443664f85ee29620bd56a3, type: 3}
+  requiresColor: 0
+  requiredCopies: 1
+  needsFood: 0
+  requiredFoodQuantity: 1
+  requiredToppings: 01000000040000000200000000000000
+  walkingSound: {fileID: 0}
+  walkingSoundVolume: 1
+  angrySound: {fileID: 0}
+  angrySoundVolume: 1
+  needsDrink: 1
+  requiredDrink: 3

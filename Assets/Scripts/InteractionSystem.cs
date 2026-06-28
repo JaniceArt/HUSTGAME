@@ -178,7 +178,7 @@ public class InteractionSystem : MonoBehaviour
 
     void Update()
     {
-        bool isDialogActive = DialogManager.Instance != null && DialogManager.Instance.dialogPanel != null && DialogManager.Instance.dialogPanel.activeInHierarchy;
+        bool isDialogActive = DialogManager.Instance != null && DialogManager.Instance.dialogPanel != null && DialogManager.Instance.dialogPanel.activeInHierarchy && !DialogManager.Instance.AllowInteraction;
         
         // Ngăn chặn Click "lây lan" từ lúc bấm tắt Hội thoại sang Interaction (Same-frame input bleed)
         if (wasDialogActiveLastFrame && !isDialogActive)
@@ -192,6 +192,8 @@ public class InteractionSystem : MonoBehaviour
         if (!FirstPersonController.CanMove)
         {
             if (promptPanel != null && promptPanel.activeSelf) promptPanel.SetActive(false);
+            if (actionHintText != null && actionHintText.gameObject.activeSelf) actionHintText.gameObject.SetActive(false);
+            if (actionHintIcon != null && actionHintIcon.gameObject.activeSelf) actionHintIcon.gameObject.SetActive(false);
             if (currentTarget != null) currentTarget = null;
             return;
         }
@@ -223,7 +225,7 @@ public class InteractionSystem : MonoBehaviour
     void HandleInput()
     {
         // Chặn tương tác nếu đang trong hội thoại hoặc đang soi giấy
-        bool isDialogActive = DialogManager.Instance != null && DialogManager.Instance.dialogPanel != null && DialogManager.Instance.dialogPanel.activeInHierarchy;
+        bool isDialogActive = DialogManager.Instance != null && DialogManager.Instance.dialogPanel != null && DialogManager.Instance.dialogPanel.activeInHierarchy && !DialogManager.Instance.AllowInteraction;
         bool isViewingDoc = DocumentManager.Instance != null && DocumentManager.Instance.IsViewingDocument;
         
         if (isDialogActive || isViewingDoc)
@@ -260,6 +262,20 @@ public class InteractionSystem : MonoBehaviour
                     }
                     HidePrompt();
                 }
+            }
+            return;
+        }
+
+        // --- Bấm chuột trái để nhặt tiền ---
+        if (currentTarget.type == InteractableType.Money)
+        {
+            if (Mouse.current.leftButton.wasPressedThisFrame)
+            {
+                // Phát tiếng nhặt (có thể dùng chung tiếng thùng rác tạm thời)
+                if (trashSound != null) AudioSource.PlayClipAtPoint(trashSound, currentTarget.transform.position, trashVolume);
+                
+                Destroy(currentTarget.gameObject);
+                HidePrompt();
             }
             return;
         }
@@ -304,7 +320,8 @@ public class InteractionSystem : MonoBehaviour
         // --- Hold E cho Stain (Vết bẩn) ---
         if (currentTarget.type == InteractableType.Stain)
         {
-            if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom)
+            if ((CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom) ||
+                (PuddleCleaningTaskStep.Instance != null && PuddleCleaningTaskStep.Instance.IsHoldingBroom))
             {
                 float duration = 2.0f; // Cần 2s để chà xong 1 vết
                 if (ePressed)
@@ -314,11 +331,14 @@ public class InteractionSystem : MonoBehaviour
                     SetProgressRing(holdTimer / duration);
                     
                     // Phát âm thanh chà chổi (nếu có)
-                    CleaningTaskStep.Instance.PlayScrubSound();
+                    if (CleaningTaskStep.Instance != null) CleaningTaskStep.Instance.PlayScrubSound();
+                    if (PuddleCleaningTaskStep.Instance != null) PuddleCleaningTaskStep.Instance.PlayScrubSound();
 
                     if (holdTimer >= duration)
                     {
-                        CleaningTaskStep.Instance.CleanStain(currentTarget.gameObject);
+                        if (CleaningTaskStep.Instance != null) CleaningTaskStep.Instance.CleanStain(currentTarget.gameObject);
+                        if (PuddleCleaningTaskStep.Instance != null) PuddleCleaningTaskStep.Instance.CleanStain(currentTarget.gameObject);
+                        
                         ResetHold();
                         HidePrompt();
                     }
@@ -362,8 +382,8 @@ public class InteractionSystem : MonoBehaviour
         Collider bestCollider = null;
         float minDistance = float.MaxValue;
 
-        // Phóng tia ray xa 10 mét để quét mọi thứ
-        RaycastHit[] hits = Physics.RaycastAll(playerCamera.transform.position, playerCamera.transform.forward, 10f);
+        // Phóng tia ray xa 10 mét để quét mọi thứ, BAO GỒM CẢ TRIGGER
+        RaycastHit[] hits = Physics.RaycastAll(playerCamera.transform.position, playerCamera.transform.forward, 10f, Physics.AllLayers, QueryTriggerInteraction.Collide);
 
         foreach (RaycastHit hit in hits)
         {
@@ -375,10 +395,18 @@ public class InteractionSystem : MonoBehaviour
                 // Giới hạn tầm với tùy theo loại vật thể
                 float maxAllowedDist = interactRange;
                 
-                // Đặc quyền tay dài: Máy bay giấy và Vết bẩn được phép nhặt/quét từ xa 7 mét
+                // Đặc quyền tay dài: Vết bẩn, Phi cơ giấy được phép nhặt/quét từ xa (7m)
                 if (obj.type == InteractableType.Stain || obj.type == InteractableType.PaperAirplane)
                 {
                     maxAllowedDist = 7f;
+                }
+                else if (obj.type == InteractableType.GhostPaper)
+                {
+                    maxAllowedDist = 5f; // Giấy tâm linh cho phép quét từ 5 mét
+                }
+                else if (obj.type == InteractableType.Speaker)
+                {
+                    maxAllowedDist = 10f; // Loa cho phép bấm từ xa 10 mét
                 }
 
                 if (hit.distance <= maxAllowedDist && hit.distance < minDistance)
@@ -544,27 +572,38 @@ public class InteractionSystem : MonoBehaviour
                 return true; // Luôn cho phép tương tác với USB
 
             case InteractableType.Broom:
-                if (CleaningTaskStep.Instance == null) return false;
-                if (!CleaningTaskStep.Instance.IsHoldingBroom)
+                if (CleaningTaskStep.Instance != null)
                 {
-                    // Chỉ cho nhặt nếu chưa cầm và tay đang trống
-                    return !IsHoldingAnyDeliverable();
+                    if (!CleaningTaskStep.Instance.IsHoldingBroom) return !IsHoldingAnyDeliverable();
+                    return false; // Đang cầm chổi thì không được bấm vào cái chổi nữa (tránh lỗi che camera)
                 }
-                else
+                if (PuddleCleaningTaskStep.Instance != null)
                 {
-                    // Đang cầm chổi -> Cho phép tương tác lại (cất chổi) NẾU đã dọn xong
-                    return CleaningTaskStep.Instance.AllStainsCleaned;
+                    if (!PuddleCleaningTaskStep.Instance.IsHoldingBroom) return !IsHoldingAnyDeliverable();
+                    return false; // Đang cầm chổi thì không được bấm vào cái chổi nữa (tránh lỗi che camera)
                 }
+                return false;
 
             case InteractableType.Stain:
-                // Chỉ chà được vết bẩn nếu đang cầm chổi
-                return CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom;
+                if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom) return true;
+                if (PuddleCleaningTaskStep.Instance != null && PuddleCleaningTaskStep.Instance.IsHoldingBroom) return true;
+                return false;
 
             case InteractableType.BroomArea:
-                // Chỉ hiện khu vực trả chổi NẾU đang cầm chổi và ĐÃ dọn xong
-                return CleaningTaskStep.Instance != null && 
-                       CleaningTaskStep.Instance.IsHoldingBroom && 
-                       CleaningTaskStep.Instance.AllStainsCleaned;
+                if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom && CleaningTaskStep.Instance.AllStainsCleaned) return true;
+                if (PuddleCleaningTaskStep.Instance != null && PuddleCleaningTaskStep.Instance.IsHoldingBroom && PuddleCleaningTaskStep.Instance.AllStainsCleaned) return true;
+                return false;
+
+            case InteractableType.Speaker:
+            case InteractableType.Money:
+            case InteractableType.GhostPaper:
+            case InteractableType.HellMoney:
+                return true;
+
+            case InteractableType.Phone:
+                bool isNormalPhoneWaiting = NormalPhoneCallStep.Instance != null && NormalPhoneCallStep.Instance.IsWaitingForAnswer;
+                bool isGhostPhoneWaiting = PhoneCallEventStep.Instance != null && PhoneCallEventStep.Instance.IsWaitingForAnswer;
+                return isNormalPhoneWaiting || isGhostPhoneWaiting;
 
             default:
                 return false;
@@ -602,6 +641,30 @@ public class InteractionSystem : MonoBehaviour
             case InteractableType.Customer:
                 Customer customer = obj.GetComponent<Customer>();
                 if (customer != null) customer.Interact();
+                break;
+
+            case InteractableType.Speaker:
+                FindSpeakerStep step = UnityEngine.Object.FindObjectOfType<FindSpeakerStep>();
+                if (step != null) step.TurnOffSpeaker();
+                break;
+
+            case InteractableType.Phone:
+                // Quét TẤT CẢ các event điện thoại đang bật trong scene
+                PhoneCallEventStep[] scaryPhoneSteps = UnityEngine.Object.FindObjectsOfType<PhoneCallEventStep>();
+                foreach (var s in scaryPhoneSteps) s.AnswerPhone();
+                
+                NormalPhoneCallStep[] normalPhoneSteps = UnityEngine.Object.FindObjectsOfType<NormalPhoneCallStep>();
+                foreach (var s in normalPhoneSteps) s.AnswerPhone();
+                break;
+
+            case InteractableType.GhostPaper:
+                LaughingGhostEventStep ghostStep = UnityEngine.Object.FindObjectOfType<LaughingGhostEventStep>();
+                if (ghostStep != null) ghostStep.ReadPaper();
+                break;
+
+            case InteractableType.HellMoney:
+                LaughingGhostEventStep hellMoneyStep = UnityEngine.Object.FindObjectOfType<LaughingGhostEventStep>();
+                if (hellMoneyStep != null) hellMoneyStep.ThrowHellMoney();
                 break;
 
             case InteractableType.PaperAirplane:
@@ -651,14 +714,13 @@ public class InteractionSystem : MonoBehaviour
             case InteractableType.Broom:
                 if (CleaningTaskStep.Instance != null)
                 {
-                    if (!CleaningTaskStep.Instance.IsHoldingBroom)
-                    {
-                        CleaningTaskStep.Instance.PickUpBroom();
-                    }
-                    else if (CleaningTaskStep.Instance.AllStainsCleaned)
-                    {
-                        CleaningTaskStep.Instance.ReturnBroom();
-                    }
+                    if (!CleaningTaskStep.Instance.IsHoldingBroom) CleaningTaskStep.Instance.PickUpBroom();
+                    else if (CleaningTaskStep.Instance.AllStainsCleaned) CleaningTaskStep.Instance.ReturnBroom();
+                }
+                if (PuddleCleaningTaskStep.Instance != null)
+                {
+                    if (!PuddleCleaningTaskStep.Instance.IsHoldingBroom) PuddleCleaningTaskStep.Instance.PickUpBroom();
+                    else if (PuddleCleaningTaskStep.Instance.AllStainsCleaned) PuddleCleaningTaskStep.Instance.ReturnBroom();
                 }
                 break;
 
@@ -666,6 +728,10 @@ public class InteractionSystem : MonoBehaviour
                 if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom && CleaningTaskStep.Instance.AllStainsCleaned)
                 {
                     CleaningTaskStep.Instance.ReturnBroom();
+                }
+                if (PuddleCleaningTaskStep.Instance != null && PuddleCleaningTaskStep.Instance.IsHoldingBroom && PuddleCleaningTaskStep.Instance.AllStainsCleaned)
+                {
+                    PuddleCleaningTaskStep.Instance.ReturnBroom();
                 }
                 break;
 
@@ -709,8 +775,16 @@ public class InteractionSystem : MonoBehaviour
             case InteractableType.TrashCan:       return "Thùng rác";
             case InteractableType.UsbDrive:       return "USB";
             case InteractableType.Broom:          return "Cây chổi";
+            case InteractableType.Speaker:        return "Loa";
+            case InteractableType.Phone:          return "Điện thoại";
             case InteractableType.BroomArea:      return "Chỗ cất chổi";
-            case InteractableType.Stain:          return "Vết bẩn";
+            case InteractableType.Stain:
+                if (obj.gameObject.name.ToLower().Contains("puddle") || obj.gameObject.name.ToLower().Contains("nước") || obj.gameObject.name.ToLower().Contains("nuoc"))
+                    return "Vết nước";
+                return "Vết bẩn";
+            case InteractableType.Money:          return "Tiền";
+            case InteractableType.GhostPaper:     return "Tờ giấy lạ";
+            case InteractableType.HellMoney:      return "Tiền âm phủ";
             default:                              return "Vật thể";
         }
     }
@@ -753,6 +827,12 @@ public class InteractionSystem : MonoBehaviour
                 if (planeStep != null && !planeStep.HasViewed) return "Xem";
                 return "Vứt rác";
 
+            case InteractableType.GhostPaper:
+                return "Xem";
+
+            case InteractableType.HellMoney:
+                return "Vứt";
+
             case InteractableType.Stain:
                 return "Dọn (Giữ)";
 
@@ -769,14 +849,28 @@ public class InteractionSystem : MonoBehaviour
             case InteractableType.FoamBoxStack:
             case InteractableType.Drink:
             case InteractableType.UsbDrive:
+            case InteractableType.Money:
                 return "Nhặt";
+
+            case InteractableType.Speaker:
+                return "Tắt loa";
+
+            case InteractableType.Phone:
+                bool isNormalPhoneWaiting = NormalPhoneCallStep.Instance != null && NormalPhoneCallStep.Instance.IsWaitingForAnswer;
+                bool isGhostPhoneWaiting = PhoneCallEventStep.Instance != null && PhoneCallEventStep.Instance.IsWaitingForAnswer;
+                
+                if (isNormalPhoneWaiting || isGhostPhoneWaiting)
+                {
+                    return "Nghe";
+                }
+                return string.Empty;
 
             case InteractableType.BroomArea:
                 return "Cất chổi";
 
             case InteractableType.Broom:
-                if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom)
-                    return "Cất chổi";
+                if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom) return "Cất chổi";
+                if (PuddleCleaningTaskStep.Instance != null && PuddleCleaningTaskStep.Instance.IsHoldingBroom) return "Cất chổi";
                 return "Nhặt chổi";
 
             case InteractableType.Printer:
@@ -787,14 +881,14 @@ public class InteractionSystem : MonoBehaviour
         }
     }
 
-    void ShowPrompt(string text)
+    public void ShowPrompt(string text)
     {
         if (promptPanel != null) promptPanel.SetActive(true);
         if (promptText  != null) promptText.text = text;
         if (crosshairUI != null) crosshairUI.SetActive(false); // Ẩn tâm ngắm
     }
 
-    void HidePrompt()
+    public void HidePrompt()
     {
         if (promptPanel != null) promptPanel.SetActive(false);
         if (crosshairUI != null) crosshairUI.SetActive(true); // Hiện lại tâm ngắm

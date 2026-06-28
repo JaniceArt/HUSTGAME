@@ -55,20 +55,11 @@ public class ObjectiveManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Đánh dấu hoàn thành nhiệm vụ (đổi O thành X, làm mờ chữ)
+    /// Đánh dấu hoàn thành nhiệm vụ (làm biến mất luôn theo yêu cầu)
     /// </summary>
     public void CompleteObjective()
     {
-        if (objectivePanel != null && !objectivePanel.activeSelf) return;
-
-        if (objectiveText != null)
-        {
-            // Thay O bằng X
-            objectiveText.text = objectiveText.text.Replace(inProgressIcon, completedIcon);
-            objectiveText.color = completedColor;
-        }
-        
-        // Bạn có thể thêm lệnh tắt hẳn UI sau vài giây ở đây nếu muốn
+        HideObjective();
     }
 
     public void HideObjective()

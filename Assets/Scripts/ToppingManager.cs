@@ -72,6 +72,8 @@ public class ToppingManager : MonoBehaviour
     [SerializeField, Tooltip("Object hộp xôi đã xếp khít trên tay (ẩn đi lúc đầu)")]
     private GameObject heldFoodInHand;
 
+    public GameObject GetHeldFoodObject() => heldFoodInHand;
+
     [SerializeField, Tooltip("Prefab dùng để ném xuống đất khi bấm Chuột Trái (nếu cần)")]
     private GameObject droppedFoodPrefab;
 
@@ -143,6 +145,21 @@ public class ToppingManager : MonoBehaviour
                 if (eggCookingAudioSource.isPlaying) eggCookingAudioSource.Stop();
                 Debug.Log("[Topping] Trứng đã chín! Bấm E để lấy.");
             }
+        }
+    }
+
+    /// <summary>
+    /// Làm đầy lại khay trứng (Gọi khi qua ngày mới)
+    /// </summary>
+    public void RefillEggs()
+    {
+        if (eggsInBox != null)
+        {
+            foreach (var egg in eggsInBox)
+            {
+                if (egg != null) egg.SetActive(true);
+            }
+            eggsRemaining = eggsInBox.Length;
         }
     }
 

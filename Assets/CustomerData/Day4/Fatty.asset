@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9327c051a4f2bfc41b31569631c83a0e, type: 3}
+  m_Name: Fatty
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerData
+  customerName: HustBoy
+  paysMoney: 1
+  moneyPrefabToThrow: {fileID: 0}
+  throwAmount: 5
+  moneyDropSound: {fileID: 0}
+  leavePuddlePrefab: {fileID: 0}
+  leavesAngry: 0
+  dancesWhileWaiting: 0
+  dancingSound: {fileID: 0}
+  dancingSoundVolume: 0.8
+  dialogNodes:
+  - sentence: "Cho 1 x\xF4i \u0111\u1EA7y \u0111\u1EE7"
+    hasChoices: 1
+    choices:
+    - choiceText: Okay
+      replyText: 
+    - choiceText: "\u0110\u01B0\u1EE3c"
+      replyText: 
+  repeatOrderDialog: "1 x\xF4i \u0111\u1EA7y \u0111\u1EE7"
+  hasUsb: 0
+  postDeliveryDialogNodes: []
+  wrongOrderDialog: "sai r\u1ED3i"
+  playerReactionAfterReading: 
+  playerReactionAfterCustomerLeaves: "Con nh\u1ECF n\xE0y c\xF3 ph\u1EA3i \u0111\u1ED3ng
+    b\u1ECDn c\u1EE7a th\u1EB1ng \u0111\xF3 kh\xF4ng nh\u1EC9, c\u1EA3m gi\xE1c ai
+    c\u0169ng \u0111\xE1ng nghi.."
+  delayBeforeReaction: 3
+  needsDocument: 0
+  documentImage: {fileID: 21300000, guid: beed18ef58443664f85ee29620bd56a3, type: 3}
+  requiresColor: 0
+  requiredCopies: 1
+  needsFood: 1
+  requiredFoodQuantity: 1
+  requiredToppings: 0100000004000000030000000200000000000000
+  walkingSound: {fileID: 8300000, guid: 9bb88a41eecfbd246824a354db1b43d6, type: 3}
+  walkingSoundVolume: 0.818
+  angrySound: {fileID: 8300000, guid: 8d54f926bc7118f4daddfa914da474ed, type: 3}
+  angrySoundVolume: 0.623
+  needsDrink: 0
+  requiredDrink: 2

@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9327c051a4f2bfc41b31569631c83a0e, type: 3}
+  m_Name: foreigner
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerData
+  customerName: foreigner
+  paysMoney: 1
+  leavesAngry: 0
+  dancesWhileWaiting: 1
+  dancingSound: {fileID: 8300000, guid: 9006881b7c37570408814709d08658d0, type: 3}
+  dancingSoundVolume: 0.549
+  dialogNodes:
+  - sentence: "Hi b\u1EA1n, cho toi m\u1EE5t banh mi \u0111\xE2y \u0111\u0169 kh\xF4ng
+      t\u01B0\u01A1ng"
+    hasChoices: 1
+    choices:
+    - choiceText: "\u0110\xE2y l\xE0 qu\xE1n x\xF4i b\u1EA1n \u01A1i"
+      replyText: "V\u1EADy 1 x\xF4i \u0111\u1EA7y \u0111\u0169 kh\xF4ng t\u01B0\u01A1ng
+        v\xE0 m\u1EE5t n\u01B0\u1EDBt s\xFAi"
+    - choiceText: "M\u1ED9t x\xF4i \u0111\u1EA7y \u0111\u1EE7 \u1EA5y h\u1EA3"
+      replyText: "Yes yes that's fine v\xE0 m\u1EE5t n\u01B0\u1EDBt s\xFAi"
+  repeatOrderDialog: "M\u1EE5t x\xF4i \u0111\u1EA7y \u0111\u0169 kh\xF4ng t\u01B0\u01A1ng
+    v\xE0 m\u1EE5t n\u01B0\u1EDBt s\xFAi"
+  hasUsb: 0
+  postDeliveryDialogNodes:
+  - sentence: Thank u very much, by the way u look like some guy i saw on tiktok
+    hasChoices: 0
+    choices:
+    - choiceText: 
+      replyText: 
+    - choiceText: 
+      replyText: 
+  wrongOrderDialog: Not my order
+  playerReactionAfterReading: 
+  playerReactionAfterCustomerLeaves: "T\u1EF1 nhi\xEAn \u0111\u1EBFn nh\u1EA3y nh\xF3t
+    r\u1ED3i n\xF3i c\xE1i g\xEC \u0111\xE2u kh\xF4ng"
+  delayBeforeReaction: 2
+  needsDocument: 0
+  documentImage: {fileID: 21300000, guid: beed18ef58443664f85ee29620bd56a3, type: 3}
+  requiresColor: 0
+  requiredCopies: 1
+  needsFood: 1
+  requiredFoodQuantity: 1
+  requiredToppings: 01000000040000000200000000000000
+  walkingSound: {fileID: 0}
+  walkingSoundVolume: 1
+  angrySound: {fileID: 0}
+  angrySoundVolume: 1
+  needsDrink: 1
+  requiredDrink: 3

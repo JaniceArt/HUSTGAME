@@ -81,6 +81,12 @@ public class PrintCanvasUI : MonoBehaviour
         UpdateToggleVisuals();
         UpdateQuantityText();
 
+        // Ép tắt Raycast Target của số lượng để tránh bị đè lên nút cộng trừ
+        if (quantityText != null)
+        {
+            quantityText.raycastTarget = false;
+        }
+
         printAudioSource = gameObject.AddComponent<AudioSource>();
         printAudioSource.playOnAwake = false;
         printAudioSource.loop = true;
@@ -187,7 +193,14 @@ public class PrintCanvasUI : MonoBehaviour
         // 2. Spawn giấy 3D tại khay máy in
         if (paperPrefab != null && spawnPoint != null)
         {
-            Instantiate(paperPrefab, spawnPoint.position, spawnPoint.rotation);
+            GameObject go = Instantiate(paperPrefab, spawnPoint.position, spawnPoint.rotation);
+            PrintedPaper pp = go.GetComponent<PrintedPaper>();
+            if (pp != null && DocumentManager.Instance != null)
+            {
+                pp.storedCustomerData = DocumentManager.Instance.CurrentCustomer;
+                pp.isColor = isColor;
+                pp.quantity = quantity;
+            }
             Debug.Log($"[Printer] Đã in {quantity} bản {(isColor ? "màu" : "đen trắng")} → giấy xuất hiện tại khay!");
         }
         else

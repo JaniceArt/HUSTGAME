@@ -29,10 +29,15 @@ public class DocumentManager : MonoBehaviour
     private GameObject packedPaperOnTable;
 
     public bool IsDocumentPackedOnTable { get; private set; }
+    public CustomerData DocumentCustomerData { get; private set; }
+    public bool DocumentIsColor { get; private set; }
+    public int DocumentQuantity { get; private set; }
 
     [Header("=== TÀI LIỆU CẦM TAY ===")]
     [SerializeField, Tooltip("Object tài liệu đã xếp khít trên tay (ẩn đi lúc đầu)")]
     private GameObject heldPaperInHand;
+
+    public GameObject GetHeldPaperObject() => heldPaperInHand;
 
     [SerializeField, Tooltip("Prefab dùng để ném xuống đất khi bấm Chuột Trái (nếu cần)")]
     private GameObject droppedPaperPrefab;
@@ -62,8 +67,8 @@ public class DocumentManager : MonoBehaviour
     public bool LastPrintWasColor => lastPrintWasColor;
     public int LastPrintQuantity => lastPrintQuantity;
 
-    // Đánh dấu đã hiện thoại chưa để không bị hiện lặp đi lặp lại
-    private bool hasReactedToCurrentDocument = false;
+    // Đánh dấu những khách hàng mà người chơi đã đọc tài liệu và lẩm bẩm rồi
+    private System.Collections.Generic.HashSet<CustomerData> reactedCustomers = new System.Collections.Generic.HashSet<CustomerData>();
 
     // -------------------------------------------------------
 
@@ -130,10 +135,10 @@ public class DocumentManager : MonoBehaviour
         if (viewCanvas != null)
             viewCanvas.SetActive(isViewingDocument);
 
-        // Cập nhật hình ảnh tài liệu theo khách hàng hiện tại
-        if (isViewingDocument && documentDisplayImage != null && CurrentCustomer != null)
+        // Cập nhật hình ảnh tài liệu theo khách hàng ĐÃ ĐƯỢC IN RA
+        if (isViewingDocument && documentDisplayImage != null && DocumentCustomerData != null)
         {
-            documentDisplayImage.sprite = CurrentCustomer.documentImage;
+            documentDisplayImage.sprite = DocumentCustomerData.documentImage;
             documentDisplayImage.preserveAspect = true; // Tự động giữ đúng tỷ lệ gốc của ảnh, chống tràn viền/méo chữ
         }
 
@@ -155,14 +160,14 @@ public class DocumentManager : MonoBehaviour
             }
 
             // Kích hoạt câu thoại tự lẩm bẩm của Player (nếu có)
-            if (CurrentCustomer != null && !hasReactedToCurrentDocument && !string.IsNullOrEmpty(CurrentCustomer.playerReactionAfterReading))
+            if (DocumentCustomerData != null && !reactedCustomers.Contains(DocumentCustomerData) && !string.IsNullOrEmpty(DocumentCustomerData.playerReactionAfterReading))
             {
-                hasReactedToCurrentDocument = true;
+                reactedCustomers.Add(DocumentCustomerData);
                 if (DialogManager.Instance != null)
                 {
                     System.Collections.Generic.List<DialogNode> reactionNodes = new System.Collections.Generic.List<DialogNode>
                     {
-                        new DialogNode { sentence = CurrentCustomer.playerReactionAfterReading, hasChoices = false }
+                        new DialogNode { sentence = DocumentCustomerData.playerReactionAfterReading, hasChoices = false }
                     };
                     DialogManager.Instance.StartDialogSequence(reactionNodes, null);
                 }
@@ -189,15 +194,17 @@ public class DocumentManager : MonoBehaviour
     public void SetCurrentCustomer(CustomerData customer)
     {
         CurrentCustomer = customer;
-        hasReactedToCurrentDocument = false; // Reset lại trạng thái lẩm bẩm cho khách mới
         Debug.Log($"[Document] Khách hàng hiện tại: {customer?.customerName ?? "Không có"}");
     }
 
     /// <summary>
     /// Gọi khi người chơi đóng gói xong tờ giấy (giữ E đủ 5s).
     /// </summary>
-    public void PackageDocumentDone()
+    public void PackageDocumentDone(CustomerData specificCustomer, bool isColor, int qty)
     {
+        DocumentCustomerData = specificCustomer;
+        DocumentIsColor = isColor;
+        DocumentQuantity = qty;
         IsDocumentPackedOnTable = true;
         
         // Hiện cục giấy đã đóng gói nằm sẵn trên bàn

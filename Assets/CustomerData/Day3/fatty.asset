@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9327c051a4f2bfc41b31569631c83a0e, type: 3}
+  m_Name: fatty
+  m_EditorClassIdentifier: Assembly-CSharp::CustomerData
+  customerName: fatty
+  paysMoney: 1
+  moneyPrefabToThrow: {fileID: 0}
+  throwAmount: 5
+  moneyDropSound: {fileID: 0}
+  leavePuddlePrefab: {fileID: 0}
+  leavesAngry: 0
+  dancesWhileWaiting: 0
+  dancingSound: {fileID: 8300000, guid: 9006881b7c37570408814709d08658d0, type: 3}
+  dancingSoundVolume: 0.554
+  dialogNodes:
+  - sentence: "2 x\xF4i \u0111\u1EA7y \u0111\u1EE7, 1 coca "
+    hasChoices: 1
+    choices:
+    - choiceText: "Nay \u0103n \xEDt v\u1EADy"
+      replyText: "??? kh\xF4ng ph\u1EA3i vi\u1EC7c c\u1EE7a anh"
+    - choiceText: Okay
+      replyText: 
+  repeatOrderDialog: "2 x\xF4i \u0111\u1EA7y \u0111\u1EE7, 1 coca"
+  hasUsb: 0
+  postDeliveryDialogNodes:
+  - sentence: 
+    hasChoices: 0
+    choices: []
+  wrongOrderDialog: "Sai r\u1ED3i"
+  playerReactionAfterReading: 
+  playerReactionAfterCustomerLeaves: 
+  delayBeforeReaction: 3
+  needsDocument: 0
+  documentImage: {fileID: 21300000, guid: beed18ef58443664f85ee29620bd56a3, type: 3}
+  requiresColor: 0
+  requiredCopies: 1
+  needsFood: 1
+  requiredFoodQuantity: 2
+  requiredToppings: 0100000004000000020000000000000003000000
+  walkingSound: {fileID: 8300000, guid: 9bb88a41eecfbd246824a354db1b43d6, type: 3}
+  walkingSoundVolume: 0.736
+  angrySound: {fileID: 8300000, guid: 8d54f926bc7118f4daddfa914da474ed, type: 3}
+  angrySoundVolume: 0.506
+  needsDrink: 1
+  requiredDrink: 1

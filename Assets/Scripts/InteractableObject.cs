@@ -23,7 +23,12 @@ public enum InteractableType
     UsbDrive,       // USB của khách đưa để in
     Broom,          // Cây chổi để quét dọn
     Stain,          // Vết bẩn trên sàn
-    BroomArea       // Khu vực vô hình để trả chổi
+    BroomArea,      // Khu vực vô hình để trả chổi
+    Speaker,        // Loa phát thanh
+    Phone,          // Điện thoại bàn
+    Money,          // Tiền khách để lại trên bàn
+    GhostPaper,     // Giấy của ma để lại
+    HellMoney       // Tiền âm phủ
 }
 
 [RequireComponent(typeof(Collider))]

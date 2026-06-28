@@ -7,6 +7,7 @@ using UnityEngine;
 /// </summary>
 public class CleaningTaskStep : SequenceStep
 {
+    // Cập nhật tĩnh liên tục tới bước dọn dẹp ĐANG CHẠY
     public static CleaningTaskStep Instance { get; private set; }
 
     [Header("=== TRẠNG THÁI (chỉ đọc) ===")]
@@ -36,12 +37,6 @@ public class CleaningTaskStep : SequenceStep
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-            return;
-        }
-        Instance = this;
         audioSource = GetComponent<AudioSource>();
         if (audioSource == null) audioSource = gameObject.AddComponent<AudioSource>();
 
@@ -54,12 +49,18 @@ public class CleaningTaskStep : SequenceStep
 
     public override void StartStep()
     {
+        Instance = this; // Gán Instance là bước ĐANG CHẠY hiện tại
         gameObject.SetActive(true);
         totalStains = stains.Count;
         cleanedStains = 0;
 
         // Hiện chổi dưới đất
-        if (floorBroom != null) floorBroom.SetActive(true);
+        if (floorBroom != null)
+        {
+            floorBroom.SetActive(true);
+            InteractableObject io = floorBroom.GetComponent<InteractableObject>();
+            if (io != null) io.enabled = true; // Bật lại để nhặt được
+        }
         
         // Ẩn chổi trên tay và khu vực trả chổi
         if (heldBroomVisual != null) heldBroomVisual.SetActive(false);
@@ -92,13 +93,13 @@ public class CleaningTaskStep : SequenceStep
     {
         if (stains.Contains(stain))
         {
-            stains.Remove(stain);
-            Destroy(stain); // Xóa vết bẩn khỏi màn hình
+            // Chỉ ẨN đi thay vì Destroy để hôm sau có thể dùng lại
+            stain.SetActive(false); 
             cleanedStains++;
             
             UpdateObjective();
 
-            if (stains.Count == 0)
+            if (cleanedStains >= totalStains)
             {
                 FinishCleaning();
             }
@@ -156,12 +157,18 @@ public class CleaningTaskStep : SequenceStep
             MeshRenderer[] renderers = floorBroom.GetComponentsInChildren<MeshRenderer>();
             foreach(var r in renderers) r.enabled = true;
             
-            // Xóa Interactable để người chơi không nhặt lại nữa
+            // Tắt tạm thời thay vì XÓA VĨNH VIỄN để hôm sau còn xài lại
             InteractableObject io = floorBroom.GetComponent<InteractableObject>();
-            if (io != null) Destroy(io);
+            if (io != null) io.enabled = false;
+        }
+
+        if (ObjectiveManager.Instance != null)
+        {
+            ObjectiveManager.Instance.HideObjective();
         }
 
         Debug.Log("[CleaningTask] Đã cất chổi xong! Chuyển bước tiếp theo.");
-        SequenceManager.Instance.NextStep();
+        Instance = null; // Dọn dẹp con trỏ
+        CompleteStep();
     }
 }

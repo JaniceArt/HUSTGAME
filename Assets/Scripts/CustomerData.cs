@@ -50,8 +50,30 @@ public class CustomerData : ScriptableObject
     [Tooltip("Khách này lúc đi về có phát tiếng Ting Ting (chuyển tiền) không? Bỏ tick nếu là khách miễn phí.")]
     public bool paysMoney = true;
 
+    [Tooltip("Vật phẩm tiền lẻ bay ra khỏi người (nếu có). Trống = không văng")]
+    public GameObject moneyPrefabToThrow;
+
+    [Tooltip("Số lượng tiền văng ra (nếu có cài Prefab tiền)")]
+    public int throwAmount = 5;
+
+    [Tooltip("Âm thanh khi tiền rớt xuống bàn (nếu có)")]
+    public AudioClip moneyDropSound;
+
+    [Tooltip("Prefab vũng nước để lại khi khách quay lưng đi (Ví dụ ma áo mưa)")]
+    public GameObject leavePuddlePrefab;
+
     [Tooltip("Khách này có tức giận dậm chân chửi bới 1 lúc rồi mới bỏ đi không?")]
     public bool leavesAngry = false;
+
+    [Tooltip("Khách này có nhảy (nhảy nhót) trong lúc chờ đồ ăn không? Khi bạn giao món đầu tiên họ sẽ ngưng nhảy.")]
+    public bool dancesWhileWaiting = false;
+
+    [Tooltip("Âm thanh (nhạc) bật lên lúc nhảy. Nếu không có thì bỏ trống.")]
+    public AudioClip dancingSound;
+
+    [Tooltip("Âm lượng của nhạc nhảy (0 đến 1)")]
+    [Range(0f, 1f)]
+    public float dancingSoundVolume = 0.8f;
 
     [Header("=== KỊCH BẢN HỘI THOẠI LÚC GỌI MÓN ===")]
     [Tooltip("Danh sách các câu thoại lúc mới vào. Bạn có thể chèn Lựa Chọn vào bất kỳ câu nào!")]

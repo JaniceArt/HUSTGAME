@@ -8,8 +8,9 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class PrintedPaper : MonoBehaviour
 {
-    // Không cần field nào — logic giữ E được xử lý bởi InteractionSystem
-    // Script này chỉ dùng để đánh dấu đây là giấy đã in
+    public CustomerData storedCustomerData;
+    public bool isColor;
+    public int quantity;
 
     /// <summary>
     /// Gọi khi người chơi giữ E đủ thời gian.
@@ -19,7 +20,7 @@ public class PrintedPaper : MonoBehaviour
     {
         if (DocumentManager.Instance != null)
         {
-            DocumentManager.Instance.PackageDocumentDone();
+            DocumentManager.Instance.PackageDocumentDone(storedCustomerData, isColor, quantity);
         }
 
         Debug.Log("[Paper] Đã đóng gói tài liệu!");
