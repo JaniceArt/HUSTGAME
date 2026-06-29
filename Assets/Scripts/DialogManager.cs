@@ -192,11 +192,17 @@ public class DialogManager : MonoBehaviour
     IEnumerator TypeSentence(string sentence)
     {
         isTyping = true;
-        dialogText.text = "";
         
-        foreach (char letter in sentence.ToCharArray())
+        // Gán toàn bộ câu để TextMeshPro tự động tính toán chỗ đứng ngay từ đầu (giúp Căn giữa không bị chạy)
+        dialogText.text = sentence;
+        dialogText.maxVisibleCharacters = 0;
+        
+        int totalChars = sentence.Length;
+
+        for (int i = 1; i <= totalChars; i++)
         {
-            dialogText.text += letter;
+            dialogText.maxVisibleCharacters = i;
+            char letter = sentence[i - 1];
 
             // Phát âm thanh gõ chữ (nếu chưa đang phát)
             if (typingSound != null && letter != ' ' && !audioSource.isPlaying)
@@ -344,6 +350,9 @@ public class DialogManager : MonoBehaviour
         choicesContainer.SetActive(false);
         isChoosing = false;
         isWaitingForInput = false;
+
+        if (dialogText != null)
+            dialogText.maxVisibleCharacters = 99999;
 
         // Cho phép người chơi di chuyển lại sau khi đóng bảng thoại (nếu không đang soi tài liệu)
         if (UnlockPlayerOnComplete && (DocumentManager.Instance == null || !DocumentManager.Instance.IsViewingDocument))
