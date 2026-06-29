@@ -63,8 +63,11 @@ public class Customer : SequenceStep
     [Tooltip("Điểm khách hàng đứng mua hàng (Vd: Trước quầy)")]
     public Transform counterPoint;
 
-    [Tooltip("Tốc độ đi bộ của khách")]
-    public float walkSpeed = 2.5f;
+    [Tooltip("Tốc độ đi bộ của khách đi VÀO cửa hàng")]
+    public float walkSpeedIn = 2.5f;
+
+    [Tooltip("Tốc độ đi bộ của khách đi RA (đi về / đi toilet)")]
+    public float walkSpeedOut = 2.5f;
 
     [Tooltip("Góc bù (Nhập 90, -90, hoặc 180 nếu khách bị quay ngang)")]
     public float yRotationOffset = 0f;
@@ -304,7 +307,7 @@ public class Customer : SequenceStep
             if (agent != null)
             {
                 agent.updateRotation = false; // Tắt tự xoay của NavMeshAgent để tự xoay mượt bằng script
-                agent.speed = walkSpeed;
+                agent.speed = walkSpeedIn;
                 agent.isStopped = false;
                 agent.SetDestination(counterPoint.position);
                 
@@ -323,7 +326,7 @@ public class Customer : SequenceStep
                 transform.position = startPoint.position;
                 while (Vector2.Distance(new Vector2(transform.position.x, transform.position.z), new Vector2(counterPoint.position.x, counterPoint.position.z)) > 0.1f)
                 {
-                    transform.position = Vector3.MoveTowards(transform.position, counterPoint.position, walkSpeed * Time.deltaTime);
+                    transform.position = Vector3.MoveTowards(transform.position, counterPoint.position, walkSpeedIn * Time.deltaTime);
                     yield return null; 
                 }
                 transform.position = counterPoint.position;
@@ -1086,7 +1089,7 @@ public class Customer : SequenceStep
             if (agent != null)
             {
                 agent.updateRotation = false; // Tắt tự xoay
-                agent.speed = walkSpeed;
+                agent.speed = walkSpeedOut;
                 agent.isStopped = false;
                 agent.SetDestination(exitTarget.position);
                 
@@ -1103,7 +1106,7 @@ public class Customer : SequenceStep
             {
                 while (Vector2.Distance(new Vector2(transform.position.x, transform.position.z), new Vector2(exitTarget.position.x, exitTarget.position.z)) > 0.5f)
                 {
-                    transform.position = Vector3.MoveTowards(transform.position, exitTarget.position, walkSpeed * Time.deltaTime);
+                    transform.position = Vector3.MoveTowards(transform.position, exitTarget.position, walkSpeedOut * Time.deltaTime);
                     yield return null;
                 }
                 transform.position = exitTarget.position;
