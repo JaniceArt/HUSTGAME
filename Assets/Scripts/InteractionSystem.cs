@@ -463,7 +463,20 @@ public class InteractionSystem : MonoBehaviour
                 CustomerData cust = DocumentManager.Instance.CurrentCustomer;
                 if (cust != null && cust.needsDocument)
                 {
-                    return true;
+                    // 1. Phải nghe order rồi mới được in
+                    Customer activeCustomer = UnityEngine.Object.FindObjectOfType<Customer>();
+                    if (activeCustomer != null && !activeCustomer.HasToldOrder)
+                    {
+                        return false;
+                    }
+
+                    // 2. Nếu khách mang USB, bắt buộc phải nhặt cắm vào rồi mới được in
+                    if (cust.hasUsb && !DocumentManager.Instance.HasPluggedInUsb)
+                    {
+                        return false;
+                    }
+
+                    return true; // Thoả mãn mọi điều kiện -> Hiện chữ "Máy in"
                 }
             }
             return false;
@@ -492,6 +505,11 @@ public class InteractionSystem : MonoBehaviour
             }
 
             return false;
+        }
+
+        if (obj.type == InteractableType.Poster)
+        {
+            return true; // Luôn cho phép bấm vào tranh ảnh để xem
         }
 
         // Máy bay giấy: luôn cho phép nhặt
@@ -634,6 +652,16 @@ public class InteractionSystem : MonoBehaviour
                 return; // Không HidePrompt — để player thấy có thể đóng lại
 
             case InteractableType.Printer:
+                if (DocumentManager.Instance != null && DocumentManager.Instance.CurrentCustomer != null)
+                {
+                    CustomerData cust = DocumentManager.Instance.CurrentCustomer;
+                    if (cust.hasUsb && !DocumentManager.Instance.HasPluggedInUsb)
+                    {
+                        Debug.LogWarning("Phải cắm USB vào máy tính trước!");
+                        break;
+                    }
+                }
+
                 PrintCanvasUI printerUI = obj.GetComponent<PrintCanvasUI>();
                 if (printerUI != null) printerUI.OpenPrintCanvas();
                 break;
@@ -665,6 +693,11 @@ public class InteractionSystem : MonoBehaviour
             case InteractableType.HellMoney:
                 LaughingGhostEventStep hellMoneyStep = UnityEngine.Object.FindObjectOfType<LaughingGhostEventStep>();
                 if (hellMoneyStep != null) hellMoneyStep.ThrowHellMoney();
+                break;
+
+            case InteractableType.Poster:
+                PosterItem poster = obj.GetComponent<PosterItem>();
+                if (poster != null) poster.Inspect();
                 break;
 
             case InteractableType.PaperAirplane:
@@ -738,6 +771,10 @@ public class InteractionSystem : MonoBehaviour
             case InteractableType.UsbDrive:
                 // Biến mất USB
                 Destroy(obj.gameObject);
+                if (DocumentManager.Instance != null)
+                {
+                    DocumentManager.Instance.HasPluggedInUsb = true;
+                }
                 Debug.Log("<color=green>[USB]</color> Đã cắm USB vào máy tính!");
                 break;
 
@@ -778,6 +815,7 @@ public class InteractionSystem : MonoBehaviour
             case InteractableType.Speaker:        return "Loa";
             case InteractableType.Phone:          return "Điện thoại";
             case InteractableType.BroomArea:      return "Chỗ cất chổi";
+            case InteractableType.Poster:         return "Xem ảnh";
             case InteractableType.Stain:
                 if (obj.gameObject.name.ToLower().Contains("puddle") || obj.gameObject.name.ToLower().Contains("nước") || obj.gameObject.name.ToLower().Contains("nuoc"))
                     return "Vết nước";

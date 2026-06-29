@@ -33,14 +33,7 @@ MonoBehaviour:
       replyText: "\u0110\u01B0\u1EE3c"
   repeatOrderDialog: 
   hasUsb: 1
-  postDeliveryDialogNodes:
-  - sentence: Thank u very much, by the way u look like some guy i saw on tiktok
-    hasChoices: 0
-    choices:
-    - choiceText: 
-      replyText: 
-    - choiceText: 
-      replyText: 
+  postDeliveryDialogNodes: []
   wrongOrderDialog: Not my order
   playerReactionAfterReading: "\xD4i tr\u1EDDi sao m\xE1y in b\u1ECB sao v\u1EADy
     nh\u1EC9"

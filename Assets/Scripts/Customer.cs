@@ -217,6 +217,31 @@ public class Customer : SequenceStep
     /// </summary>
     public override void StartStep()
     {
+        // === TÌM START POINT NẾU CHƯA CÓ ===
+        if (startPoint == null)
+        {
+            Debug.LogError("[LOI] StartPoint bị NULL! Thử tìm tự động...");
+            GameObject sp = GameObject.Find("StartPoint");
+            if (sp != null) startPoint = sp.transform;
+            Debug.LogError($"[LOI] Tự động tìm StartPoint thành công: {startPoint != null}");
+        }
+        
+        // === DỊCH CHUYỂN TRƯỚC KHI BẬT (Tránh lỗi hiện hình 1 nhịp rồi mới bay) ===
+        if (startPoint != null)
+        {
+            UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null)
+            {
+                // Dùng Warp nếu NavMesh đã bật, nếu tắt thì dùng transform.position
+                if (agent.isActiveAndEnabled) agent.Warp(startPoint.position);
+                else transform.position = startPoint.position;
+            }
+            else
+            {
+                transform.position = startPoint.position;
+            }
+        }
+
         gameObject.SetActive(true);
         DocumentManager.Instance.SetCurrentCustomer(customerData);
         
@@ -238,14 +263,6 @@ public class Customer : SequenceStep
             animator.applyRootMotion = false;
         }
 
-        if (startPoint == null)
-        {
-            Debug.LogError("[LOI] StartPoint bị NULL! Thử tìm tự động...");
-            GameObject sp = GameObject.Find("StartPoint");
-            if (sp != null) startPoint = sp.transform;
-            Debug.LogError($"[LOI] Tự động tìm StartPoint thành công: {startPoint != null}");
-        }
-        
         if (counterPoint == null || counterPoint.gameObject.name != "EndPoint")
         {
             Debug.LogError("[LOI] EndPoint bị NULL hoặc gán nhầm! Ép tìm lại...");
@@ -289,7 +306,6 @@ public class Customer : SequenceStep
                 agent.updateRotation = false; // Tắt tự xoay của NavMeshAgent để tự xoay mượt bằng script
                 agent.speed = walkSpeed;
                 agent.isStopped = false;
-                agent.Warp(startPoint.position);
                 agent.SetDestination(counterPoint.position);
                 
                 // Đợi cho đến khi tìm xong đường và đi đến nơi
@@ -471,19 +487,19 @@ public class Customer : SequenceStep
         }
     }
 
-    private bool hasToldOrder = false;
+    public bool HasToldOrder { get; private set; } = false;
 
     void OnDialogFinished(int choiceResult)
     {
         Debug.Log($"[DIALOG - {customerData.customerName}]: Đã nói xong! Lựa chọn: {choiceResult}");
         
         // Spawn USB nếu khách có mang USB (Chỉ vứt lần đầu tiên nói chuyện)
-        if (!hasToldOrder && customerData != null && customerData.hasUsb && usbPrefab != null && counterPoint != null)
+        if (!HasToldOrder && customerData != null && customerData.hasUsb && usbPrefab != null && counterPoint != null)
         {
             StartCoroutine(ThrowUsbRoutine());
         }
 
-        hasToldOrder = true;
+        HasToldOrder = true;
 
         // Nếu khách này được tick 'Leaves Angry', họ sẽ dỗi và bỏ đi LUÔN sau khi nói chuyện
         // Không chờ đồ ăn đồ uống gì nữa!

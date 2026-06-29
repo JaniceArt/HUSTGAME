@@ -34,7 +34,7 @@ MonoBehaviour:
   repeatOrderDialog: "2 x\xF4i full topping kh\xF4ng sauce"
   hasUsb: 0
   postDeliveryDialogNodes:
-  - sentence: Thank you, I love your food so much.
+  - sentence: "Your x\xF4i very ngon. I love it."
     hasChoices: 0
     choices: []
   wrongOrderDialog: Not my order

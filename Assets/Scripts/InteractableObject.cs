@@ -28,7 +28,8 @@ public enum InteractableType
     Phone,          // Điện thoại bàn
     Money,          // Tiền khách để lại trên bàn
     GhostPaper,     // Giấy của ma để lại
-    HellMoney       // Tiền âm phủ
+    HellMoney,      // Tiền âm phủ
+    Poster          // Bức tranh/Ảnh dán tường
 }
 
 [RequireComponent(typeof(Collider))]

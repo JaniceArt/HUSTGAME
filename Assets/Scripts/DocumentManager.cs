@@ -24,6 +24,9 @@ public class DocumentManager : MonoBehaviour
     /// <summary>Dữ liệu khách hàng hiện tại (ai đang được phục vụ)</summary>
     public CustomerData CurrentCustomer { get; private set; }
 
+    /// <summary>Trạng thái đã nhặt và cắm USB chưa?</summary>
+    public bool HasPluggedInUsb { get; set; } = false;
+
     [Header("=== TÀI LIỆU TRÊN BÀN ===")]
     [SerializeField, Tooltip("Object xấp tài liệu đã đóng gói để sẵn trên bàn (ẩn lúc đầu)")]
     private GameObject packedPaperOnTable;
@@ -194,6 +197,7 @@ public class DocumentManager : MonoBehaviour
     public void SetCurrentCustomer(CustomerData customer)
     {
         CurrentCustomer = customer;
+        HasPluggedInUsb = false; // Luôn reset USB khi có khách mới
         Debug.Log($"[Document] Khách hàng hiện tại: {customer?.customerName ?? "Không có"}");
     }
 
