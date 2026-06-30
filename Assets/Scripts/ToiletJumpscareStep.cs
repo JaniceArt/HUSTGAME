@@ -270,13 +270,20 @@ public class ToiletJumpscareStep : SequenceStep
         {
             agent.enabled = true;
             agent.isStopped = false;
-            agent.updateRotation = true; // Cho phép tự động xoay khi đi
+            agent.updateRotation = false; // Tắt tự động xoay để ép xoay bằng code cho chuẩn
             agent.speed = 2.5f; // Tốc độ đi bộ bình thường
             agent.SetDestination(exitPoint.position);
 
             // Đợi cho đến khi đi đến nơi
             while (agent.pathPending || agent.remainingDistance > 0.5f)
             {
+                // Ép xoay mặt về hướng đang di chuyển
+                if (agent.velocity.sqrMagnitude > 0.01f)
+                {
+                    Vector3 dir = agent.velocity.normalized;
+                    dir.y = 0;
+                    fatGuy.transform.rotation = Quaternion.Slerp(fatGuy.transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * 10f);
+                }
                 yield return null;
             }
         }
@@ -286,6 +293,16 @@ public class ToiletJumpscareStep : SequenceStep
             float walkTime = 3f;
             while (walkTime > 0)
             {
+                if (exitPoint != null)
+                {
+                    Vector3 dir = (exitPoint.position - fatGuy.transform.position).normalized;
+                    dir.y = 0;
+                    if (dir != Vector3.zero)
+                    {
+                        fatGuy.transform.rotation = Quaternion.Slerp(fatGuy.transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * 10f);
+                    }
+                }
+                
                 fatGuy.transform.Translate(Vector3.forward * 2.5f * Time.deltaTime);
                 walkTime -= Time.deltaTime;
                 yield return null;

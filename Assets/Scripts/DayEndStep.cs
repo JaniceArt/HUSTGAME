@@ -28,6 +28,7 @@ public class DayEndStep : SequenceStep
     [Tooltip("Thời gian chờ màn hình đen có chữ DAY X (giây)")]
     public float blackScreenDuration = 2.0f;
 
+
     [Tooltip("Điểm người chơi sẽ bị dịch chuyển tới để bắt đầu ngày mới (VD: Điểm StartDay2)")]
     public Transform nextDaySpawnPoint;
 

@@ -39,8 +39,25 @@ public class PhoneCallEventStep : SequenceStep
     [Tooltip("Âm thanh Jumpscare khi Game Over")]
     public AudioClip jumpscareSound;
 
+    [Header("=== HIỆU ỨNG ÁNH SÁNG ===")]
+    [Tooltip("Kéo NHÓM ĐÈN BÌNH THƯỜNG vào đây (Sẽ bị tắt đi khi ma xuất hiện)")]
+    public GameObject normalLightingGroup;
+    
+    [Tooltip("Kéo NHÓM ĐÈN KINH DỊ do bạn tự set (Sẽ được bật lên khi ma xuất hiện)")]
+    public GameObject spookyLightingGroup;
+
+    [Header("=== NHẠC NỀN KỊCH TÍNH ===")]
+    [Tooltip("Nhạc nền hoảng loạn nổi lên khi con ma xuất hiện (nhịp tim, dồn dập...)")]
+    public AudioClip panicBGM;
+
+
+
+
+
+
     private AudioSource phoneAudio;
     private AudioSource jumpscareAudio;
+    private AudioSource bgmAudio;
     private SlidingDoor mainDoor;
     private bool isPhoneAnswered = false;
     public bool IsWaitingForAnswer => !isPhoneAnswered;
@@ -51,6 +68,10 @@ public class PhoneCallEventStep : SequenceStep
     {
         phoneAudio = gameObject.AddComponent<AudioSource>();
         jumpscareAudio = gameObject.AddComponent<AudioSource>();
+        bgmAudio = gameObject.AddComponent<AudioSource>();
+        bgmAudio.loop = true; // Nhạc nền thì phải lặp lại
+        bgmAudio.spatialBlend = 0f; // Nhạc nền 2D (phát thẳng vào tai)
+
         if (scaryEntity != null) scaryEntity.SetActive(false);
         if (gameOverCanvas != null) gameOverCanvas.alpha = 0f;
     }
@@ -61,11 +82,16 @@ public class PhoneCallEventStep : SequenceStep
         // Reset trạng thái (dùng cho cả lúc mới bắt đầu hoặc lúc Game Over chơi lại)
         isPhoneAnswered = false;
         isWaitingForDoorClose = false;
+        if (bgmAudio != null) bgmAudio.Stop();
         if (scaryEntity != null) scaryEntity.SetActive(false);
         if (gameOverCanvas != null) gameOverCanvas.alpha = 0f;
         FirstPersonController.CanMove = true;
         
         mainDoor = FindObjectOfType<SlidingDoor>();
+        
+        // Đảm bảo đèn bình thường đang bật, đèn kinh dị đang tắt
+        if (normalLightingGroup != null) normalLightingGroup.SetActive(true);
+        if (spookyLightingGroup != null) spookyLightingGroup.SetActive(false);
 
         // Bật tương tác cho điện thoại
         if (phoneObject != null)
@@ -224,6 +250,17 @@ public class PhoneCallEventStep : SequenceStep
         // Bắt đầu đếm ngược ngầm (Không hiện nhiệm vụ để người chơi tự hoảng loạn)
         doorTimer = timeToCloseDoor;
         isWaitingForDoorClose = true;
+
+        // ĐỔI ÁNH SÁNG DO BẠN TỰ SET!
+        if (normalLightingGroup != null) normalLightingGroup.SetActive(false);
+        if (spookyLightingGroup != null) spookyLightingGroup.SetActive(true);
+
+        // BẬT NHẠC NỀN HOẢNG LOẠN
+        if (panicBGM != null && bgmAudio != null)
+        {
+            bgmAudio.clip = panicBGM;
+            bgmAudio.Play();
+        }
     }
 
     void Update()
@@ -323,6 +360,13 @@ public class PhoneCallEventStep : SequenceStep
         // Con ma bỏ đi (biến mất)
         if (scaryEntity != null) scaryEntity.SetActive(false);
 
+        // Tắt nhạc hoảng loạn
+        if (bgmAudio != null) bgmAudio.Stop();
+
+        // Bật lại điện bình thường
+        if (normalLightingGroup != null) normalLightingGroup.SetActive(true);
+        if (spookyLightingGroup != null) spookyLightingGroup.SetActive(false);
+
         // Dừng tiếng ma (nếu còn)
         if (scaryEntity != null)
         {
@@ -361,6 +405,9 @@ public class PhoneCallEventStep : SequenceStep
             AudioSource[] allAudio = scaryEntity.GetComponentsInChildren<AudioSource>();
             foreach (var a in allAudio) a.Stop();
         }
+
+        // Tắt nhạc nền nếu đang Game Over
+        if (bgmAudio != null) bgmAudio.Stop();
 
         // Ẩn nhiệm vụ đi nếu game over
         if (ObjectiveManager.Instance != null)

@@ -204,11 +204,15 @@ public class Customer : SequenceStep
         {
             targetRotation = counterPoint.rotation * Quaternion.Euler(0, yRotationOffset, 0);
         }
-        else if (currentState == CustomerState.WalkingOut && startPoint != null)
+        else if (currentState == CustomerState.WalkingOut)
         {
-            Vector3 direction = (startPoint.position - transform.position).normalized;
-            direction.y = 0;
-            if (direction != Vector3.zero) targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+            Transform targetExit = (customExitPoint != null) ? customExitPoint : startPoint;
+            if (targetExit != null)
+            {
+                Vector3 direction = (targetExit.position - transform.position).normalized;
+                direction.y = 0;
+                if (direction != Vector3.zero) targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+            }
         }
 
         // Xoay mượt mà thay vì giật cục (snap)
