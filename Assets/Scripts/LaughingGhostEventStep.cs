@@ -134,10 +134,10 @@ public class LaughingGhostEventStep : SequenceStep
                     AudioSource audio = ghostNPC.GetComponent<AudioSource>();
                     if (audio == null) audio = ghostNPC.AddComponent<AudioSource>();
                     
-                    audio.spatialBlend = 1f; // 1 = 3D (phát từ chỗ ma)
-                    audio.rolloffMode = AudioRolloffMode.Linear; // Linear nghe to rõ hơn ở xa
-                    audio.minDistance = 20f; // Bơm lên 20m: Đứng xa 20m vẫn nghe 100% Volume rát tai!
-                    audio.maxDistance = 100f; // Xa 100m mới tắt
+                    audio.spatialBlend = 1f; // Thuần 3D
+                    audio.rolloffMode = AudioRolloffMode.Linear; // Linear giúp âm thanh vang xa hơn
+                    audio.minDistance = 2f; // Chỉ khi đứng cách ma 2m thì mới nghe to nhất
+                    audio.maxDistance = 60f; // Đi xa 60m mới tắt, đảm bảo 40m vẫn nghe thấy vang vọng
                     // AudioSource.volume trong Unity tối đa chỉ là 1f. Nếu bạn nhập 5, nó cũng chỉ là 1f.
                     // Nếu tiếng vẫn nhỏ thì do bản gốc của file âm thanh bị nhỏ!
                     audio.volume = laughVolume > 1f ? 1f : laughVolume;
@@ -239,13 +239,23 @@ public class LaughingGhostEventStep : SequenceStep
             // Nếu con ma nằm trong góc nhìn 60 độ của người chơi (tức là lọt vào màn hình)
             if (angle < 60f)
             {
-                // Bắn tia xuyên thấu qua các vật thể trong suốt (như Trigger) để đảm bảo không bị block nhầm
-                RaycastHit[] hitsToGhost = Physics.RaycastAll(cam.transform.position, dirToGhost, 25f);
+                // Bắn tia xuyên thấu với khoảng cách 45m
+                RaycastHit[] hitsToGhost = Physics.RaycastAll(cam.transform.position, dirToGhost, 45f);
+                
+                // Sắp xếp các vật cản từ gần đến xa
+                System.Array.Sort(hitsToGhost, (a, b) => a.distance.CompareTo(b.distance));
+
                 foreach (RaycastHit h in hitsToGhost)
                 {
+                    // Chạm trúng con ma trước -> Kích hoạt thoại!
                     if (h.collider.gameObject == ghostNPC || h.collider.transform.IsChildOf(ghostNPC.transform))
                     {
                         OnSeenGhostFromAfar();
+                        break;
+                    }
+                    // Chạm trúng vật cản cứng (Tường, cửa...) trước -> Ma bị che khuất -> Thoát!
+                    else if (!h.collider.isTrigger)
+                    {
                         break;
                     }
                 }
@@ -304,8 +314,8 @@ public class LaughingGhostEventStep : SequenceStep
             if (parentAudio == null) parentAudio = gameObject.AddComponent<AudioSource>();
             parentAudio.spatialBlend = 1f;
             parentAudio.rolloffMode = AudioRolloffMode.Linear;
-            parentAudio.minDistance = 20f;
-            parentAudio.maxDistance = 100f;
+            parentAudio.minDistance = 2f;
+            parentAudio.maxDistance = 60f;
             parentAudio.volume = escapeVolume;
             parentAudio.clip = escapeSound;
             parentAudio.loop = false; // Tiếng bỏ chạy chỉ kêu 1 lần

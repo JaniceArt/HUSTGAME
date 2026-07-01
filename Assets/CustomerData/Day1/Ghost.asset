@@ -23,7 +23,7 @@ MonoBehaviour:
   dancingSound: {fileID: 0}
   dancingSoundVolume: 0.8
   dialogNodes:
-  - sentence: "In cho t\xF4i c\xE1i n\xE0y 1 b\u1EA3n tr\u1EAFng \u0111en"
+  - sentence: "In cho t\xF4i file trong usb n\xE0y 1 b\u1EA3n tr\u1EAFng \u0111en"
     hasChoices: 1
     choices:
     - choiceText: "Oke ch\u1ECB g\xE1i"

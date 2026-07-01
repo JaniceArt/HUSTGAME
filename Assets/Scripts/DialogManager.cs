@@ -70,13 +70,15 @@ public class DialogManager : MonoBehaviour
 
     public bool IsDialogActive => dialogPanel.activeInHierarchy;
 
-    public void StartDialogSequence(List<DialogNode> nodes, Action<int> onComplete)
+    public void StartDialogSequence(List<DialogNode> nodes, Action<int> onComplete = null, Color? textColor = null)
     {
         if (nodes == null || nodes.Count == 0)
         {
             onComplete?.Invoke(-1);
             return;
         }
+
+        if (dialogText != null) dialogText.color = textColor ?? Color.white;
 
         // Khóa di chuyển và hiện chuột
         FirstPersonController.CanMove = false;
@@ -99,13 +101,15 @@ public class DialogManager : MonoBehaviour
         DisplayNextNode();
     }
 
-    public void StartAutoDialogSequence(List<DialogNode> nodes, Action<int> onComplete, float speedMultiplier = 1f, float delayBetweenNodes = 1.5f)
+    public void StartAutoDialogSequence(List<DialogNode> nodes, Action<int> onComplete, float speedMultiplier = 1f, float delayBetweenNodes = 1.5f, Color? textColor = null)
     {
         if (nodes == null || nodes.Count == 0)
         {
             onComplete?.Invoke(-1);
             return;
         }
+
+        if (dialogText != null) dialogText.color = textColor ?? Color.white;
 
         isAutoAdvance = true;
         autoAdvanceDelay = delayBetweenNodes;

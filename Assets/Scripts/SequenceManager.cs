@@ -129,6 +129,7 @@ public class SequenceManager : MonoBehaviour
 
         Debug.Log($"[Sequence] Bắt đầu bước {currentStepIndex}: {step.gameObject.name}");
         step.gameObject.SetActive(true);
+        step.ResetCompletion(); // Reset trạng thái để dùng lại nếu cần
         step.StartStep();
 
         // Hiển thị nhiệm vụ lên màn hình (nếu có)
@@ -136,5 +137,21 @@ public class SequenceManager : MonoBehaviour
         {
             ObjectiveManager.Instance.ShowObjective(step.objectiveTitle);
         }
+
+        if (step.autoAdvanceNextStep)
+        {
+            StartCoroutine(AutoAdvanceRoutine(step));
+        }
+    }
+
+    private IEnumerator AutoAdvanceRoutine(SequenceStep step)
+    {
+        if (step.advanceDelay > 0)
+        {
+            yield return new WaitForSeconds(step.advanceDelay);
+        }
+        
+        // Gọi hàm của step để báo hoàn thành sớm (chỉ báo hiệu để qua bước, step cũ vẫn chạy bth)
+        step.CompleteStepEarly();
     }
 }

@@ -27,10 +27,10 @@ MonoBehaviour:
       nh\xE9"
     hasChoices: 1
     choices:
-    - choiceText: "V\xE2ng \u1EA1 em ch\xE0o th\u1EA7y \u1EA1"
-      replyText: "\u1EEA"
+    - choiceText: "Th\u1EA7y \u1EDF l\u1EA1i tr\u01B0\u1EDDng mu\u1ED9n qu\xE1 \u1EA1"
+      replyText: "\u1EEA em"
     - choiceText: "D\u1EA1 v\xE2ng \u1EA1"
-      replyText: "\u1EEA"
+      replyText: 
   repeatOrderDialog: "2 b\u1EA3n kh\xF4ng m\xE0u"
   hasUsb: 0
   postDeliveryDialogNodes:

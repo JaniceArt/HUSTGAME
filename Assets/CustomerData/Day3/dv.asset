@@ -29,9 +29,8 @@ MonoBehaviour:
     choices:
     - choiceText: "D\u1EA1 v\xE2ng \u1EA1"
       replyText: "Th\xEAm 1 n\u01B0\u1EDBc l\u1ECDc nh\xE9"
-    - choiceText: "Th\u1EA7y \u0111i l\xE0m s\u1EDBm qu\xE1 \u1EA1"
-      replyText: "\u1EEA h\xF4m nay c\xF3 ti\u1EBFt l\u1EDBp Game s\u1EDBm. Th\xEAm
-        1 n\u01B0\u1EDBc l\u1ECDc nh\xE9"
+    - choiceText: "Th\u1EA7y kh\xF4ng th\xEDch \u0103n pate h\u1EA3 th\u1EA7y"
+      replyText: "...Th\xEAm 1 n\u01B0\u1EDBc l\u1ECDc nh\xE9"
   repeatOrderDialog: "Cho th\u1EA7y 1 x\xF4i \u0111\u1EA7y \u0111\u1EE7 kh\xF4ng
     pate, th\xEAm 1 n\u01B0\u1EDBc l\u1ECDc"
   hasUsb: 0

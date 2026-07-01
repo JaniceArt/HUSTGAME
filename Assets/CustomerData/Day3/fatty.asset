@@ -32,10 +32,7 @@ MonoBehaviour:
       replyText: 
   repeatOrderDialog: "2 x\xF4i \u0111\u1EA7y \u0111\u1EE7, 1 coca"
   hasUsb: 0
-  postDeliveryDialogNodes:
-  - sentence: 
-    hasChoices: 0
-    choices: []
+  postDeliveryDialogNodes: []
   wrongOrderDialog: "Sai r\u1ED3i"
   playerReactionAfterReading: 
   playerReactionAfterCustomerLeaves: 
@@ -48,8 +45,8 @@ MonoBehaviour:
   requiredFoodQuantity: 2
   requiredToppings: 0100000004000000020000000000000003000000
   walkingSound: {fileID: 8300000, guid: 9bb88a41eecfbd246824a354db1b43d6, type: 3}
-  walkingSoundVolume: 0.736
+  walkingSoundVolume: 0.6
   angrySound: {fileID: 8300000, guid: 8d54f926bc7118f4daddfa914da474ed, type: 3}
-  angrySoundVolume: 0.506
+  angrySoundVolume: 0.15
   needsDrink: 1
   requiredDrink: 1

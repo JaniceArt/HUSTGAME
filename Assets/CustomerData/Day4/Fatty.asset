@@ -25,19 +25,15 @@ MonoBehaviour:
   dialogNodes:
   - sentence: "Cho 1 x\xF4i \u0111\u1EA7y \u0111\u1EE7"
     hasChoices: 1
-    choices:
-    - choiceText: Okay
-      replyText: 
-    - choiceText: "\u0110\u01B0\u1EE3c"
-      replyText: 
+    choices: []
   repeatOrderDialog: "1 x\xF4i \u0111\u1EA7y \u0111\u1EE7"
   hasUsb: 0
   postDeliveryDialogNodes: []
   wrongOrderDialog: "sai r\u1ED3i"
   playerReactionAfterReading: 
   playerReactionAfterCustomerLeaves: "Con nh\u1ECF n\xE0y c\xF3 ph\u1EA3i \u0111\u1ED3ng
-    b\u1ECDn c\u1EE7a th\u1EB1ng \u0111\xF3 kh\xF4ng nh\u1EC9, c\u1EA3m gi\xE1c ai
-    c\u0169ng \u0111\xE1ng nghi.."
+    b\u1ECDn c\u1EE7a th\u1EB1ng \u0111\xF3 kh\xF4ng nh\u1EC9, \u0111\xE1ng nghi
+    qu\xE1..."
   delayBeforeReaction: 3
   needsDocument: 0
   documentImage: {fileID: 21300000, guid: beed18ef58443664f85ee29620bd56a3, type: 3}
@@ -47,8 +43,8 @@ MonoBehaviour:
   requiredFoodQuantity: 1
   requiredToppings: 0100000004000000030000000200000000000000
   walkingSound: {fileID: 8300000, guid: 9bb88a41eecfbd246824a354db1b43d6, type: 3}
-  walkingSoundVolume: 0.818
+  walkingSoundVolume: 0.6
   angrySound: {fileID: 8300000, guid: 8d54f926bc7118f4daddfa914da474ed, type: 3}
-  angrySoundVolume: 0.623
+  angrySoundVolume: 0.15
   needsDrink: 0
   requiredDrink: 2

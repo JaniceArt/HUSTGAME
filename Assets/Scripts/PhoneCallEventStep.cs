@@ -26,6 +26,8 @@ public class PhoneCallEventStep : SequenceStep
     public Transform outsideSpawnPoint;
     [Tooltip("Âm thanh lúc ma lảng vảng ngoài cửa sau khi đóng (tiếng cào cửa, thở...)")]
     public AudioClip ghostWaitSound;
+    [Tooltip("Chỉnh độ to nhỏ của tiếng ma khóc ngoài cửa (Mặc định: 1. Có thể kéo lên 5)")]
+    [Range(0f, 5f)] public float ghostWaitVolume = 1f;
     [Tooltip("Thoại lúc ma lảng vảng ngoài cửa (VD: Mở cửa ra...)")]
     public List<DialogNode> ghostWaitDialog;
     [Tooltip("Thoại nội tâm của Main sau khi ma đã rời đi (VD: Thoát rồi, sợ quá...)")]
@@ -188,7 +190,7 @@ public class PhoneCallEventStep : SequenceStep
         {
             bool isVoiceDone = false;
             // Thoại điện thoại: Tự chạy, gõ chữ siêu siêu chậm (6x), tự tắt sau 4s
-            DialogManager.Instance.StartAutoDialogSequence(phoneVoiceDialog, (result) => { isVoiceDone = true; }, 6f, 4f);
+            DialogManager.Instance.StartAutoDialogSequence(phoneVoiceDialog, (result) => { isVoiceDone = true; }, 6f, 4f, Color.red); // Màu đỏ máu
             while (!isVoiceDone) yield return null;
         }
 
@@ -238,7 +240,7 @@ public class PhoneCallEventStep : SequenceStep
 
             scaryEntity.transform.position = outsideSpawnPoint.position;
             
-            // Ma nhìn chằm chằm vào cửa/người chơi
+            // Nhìn chằm chằm vào cửa/người chơi
             if (player != null)
             {
                 Vector3 lookDir = (player.position - scaryEntity.transform.position).normalized;
@@ -313,13 +315,20 @@ public class PhoneCallEventStep : SequenceStep
         {
             AudioSource ghostAudio = scaryEntity.GetComponent<AudioSource>();
             if (ghostAudio == null) ghostAudio = scaryEntity.AddComponent<AudioSource>();
-            
             ghostAudio.spatialBlend = 1f; // Full 3D
-            ghostAudio.maxDistance = 25f;
+            ghostAudio.minDistance = 15f; // NGHE RÕ MAX VOLUME TRONG BÁN KÍNH 15M (bao trọn cả phòng máy)
+            ghostAudio.maxDistance = 35f;
             ghostAudio.rolloffMode = AudioRolloffMode.Linear;
-            ghostAudio.clip = ghostWaitSound;
-            ghostAudio.loop = false;
-            ghostAudio.Play();
+            ghostAudio.loop = false; // Tắt loop mặc định vì ta dùng PlayOneShot
+
+            // HACK KÍCH ÂM: Phát chồng file âm thanh lên nhau để làm nó to gấp nhiều lần!
+            float remainingVolume = ghostWaitVolume;
+            while (remainingVolume > 0f)
+            {
+                float v = remainingVolume > 1f ? 1f : remainingVolume;
+                ghostAudio.PlayOneShot(ghostWaitSound, v);
+                remainingVolume -= 1f;
+            }
         }
 
         // Hiện thoại của ma ngoài cửa
@@ -328,8 +337,8 @@ public class PhoneCallEventStep : SequenceStep
             // Cho phép người chơi tương tác (mở cửa) trong khi ma đang nói
             DialogManager.Instance.AllowInteraction = true;
             
-            // Thoại ma: Tự chạy, gõ chữ siêu siêu chậm (8x), lề mề
-            DialogManager.Instance.StartAutoDialogSequence(ghostWaitDialog, null, 8f, 3f);
+            // Thoại ma: Tự chạy, gõ chữ siêu siêu chậm (8x), lờ mờ, màu đỏ máu
+            DialogManager.Instance.StartAutoDialogSequence(ghostWaitDialog, null, 8f, 3f, Color.red);
         }
 
         // --- 3. Ma đứng ngoài cửa quậy đúng 20 giây ---
@@ -357,22 +366,36 @@ public class PhoneCallEventStep : SequenceStep
             yield return null;
         }
 
-        // Con ma bỏ đi (biến mất)
-        if (scaryEntity != null) scaryEntity.SetActive(false);
+        // --- Bắt đầu Fade Out âm thanh (3 giây) thay vì ngắt cái phụp ---
+        AudioSource fadeGhostAudio = null;
+        if (scaryEntity != null) fadeGhostAudio = scaryEntity.GetComponent<AudioSource>();
+        
+        float fadeDuration = 3f;
+        float fadeTimer = 0f;
+        float startBgmVol = bgmAudio != null ? bgmAudio.volume : 0f;
+        float startGhostVol = fadeGhostAudio != null ? fadeGhostAudio.volume : 0f;
 
-        // Tắt nhạc hoảng loạn
+        while (fadeTimer < fadeDuration)
+        {
+            fadeTimer += Time.deltaTime;
+            float t = fadeTimer / fadeDuration;
+            
+            if (bgmAudio != null) bgmAudio.volume = Mathf.Lerp(startBgmVol, 0f, t);
+            if (fadeGhostAudio != null) fadeGhostAudio.volume = Mathf.Lerp(startGhostVol, 0f, t);
+            
+            yield return null;
+        }
+
+        // Tắt hẳn sau khi đã fade xong
         if (bgmAudio != null) bgmAudio.Stop();
+        if (fadeGhostAudio != null) fadeGhostAudio.Stop();
+        
+        // Bây giờ mới cho con ma biến mất
+        if (scaryEntity != null) scaryEntity.SetActive(false);
 
         // Bật lại điện bình thường
         if (normalLightingGroup != null) normalLightingGroup.SetActive(true);
         if (spookyLightingGroup != null) spookyLightingGroup.SetActive(false);
-
-        // Dừng tiếng ma (nếu còn)
-        if (scaryEntity != null)
-        {
-            AudioSource ghostAudio = scaryEntity.GetComponent<AudioSource>();
-            if (ghostAudio != null) ghostAudio.Stop();
-        }
 
         // --- Đợi 5 giây cho hoàn toàn yên ắng ---
         yield return new WaitForSeconds(5f);

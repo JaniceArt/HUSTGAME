@@ -36,8 +36,13 @@ public class FirstPersonController : MonoBehaviour
             defaultCameraY = playerCamera.transform.localPosition.y;
         }
 
+        // Tải độ nhạy chuột từ Settings (Giá trị 1-10 quy đổi ra số float)
+        int savedSens = PlayerPrefs.GetInt("MouseSensitivity", 5);
+        UpdateSensitivityFromSettings(savedSens);
+
         // Input Actions setup
         inputActions = new PlayerInputActions();
+
 
         // Subscribe input
         inputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
@@ -143,5 +148,12 @@ public class FirstPersonController : MonoBehaviour
     {
         if (collision.contacts[0].normal.y > 0.5f)
             isGrounded = true;
+    }
+
+    public void UpdateSensitivityFromSettings(int level)
+    {
+        // Mức 1 = 0.2f (cực chậm) -> Mức 5 = 1.0f -> Mức 10 = 2.0f
+        lookSensitivity = level * 0.2f;
+        Debug.Log("[Player] Đã cập nhật độ nhạy chuột thành: " + lookSensitivity);
     }
 }

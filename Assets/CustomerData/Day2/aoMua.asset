@@ -31,7 +31,7 @@ MonoBehaviour:
       replyText: ...
     - choiceText: "\u01A0 tr\u1EDDi m\u01B0a t\u1EEB l\xFAc n\xE0o th\u1EBF"
       replyText: ...
-  repeatOrderDialog: "1 n\u01B0\u1EDBc kho\xE1ng"
+  repeatOrderDialog: "1 n\u01B0\u1EDBc l\u1ECDc lavie"
   hasUsb: 0
   postDeliveryDialogNodes: []
   wrongOrderDialog: "Sai r\u1ED3i"

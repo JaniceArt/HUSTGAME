@@ -29,8 +29,8 @@ MonoBehaviour:
     - choiceText: "\u01A0 b\xE0 ch\u1ECB h\xF4m qua ch\u01B0a tr\u1EA3 ti\u1EC1n
         \u0111\xE2u nh\xE9"
       replyText: "Nay s\u1EBD tr\u1EA3 \u0111\u1EE7.."
-    - choiceText: "Qua ch\u1ECB ch\u01B0a tr\u1EA3 nay tr\u1EA3 c\u1EA3 cho em \u0111\u1EA5y"
-      replyText: "\u0110\u01B0\u1EE3c"
+    - choiceText: "B\xE0 ch\u1ECB l\u1EA1i \u0111\u1EBFn in \u0111\u1ED3 \xE1n \xE0"
+      replyText: "Ph\u1EA3i, t\xF4i s\u1EBD in ho\xE0i in ho\xE0i..."
   repeatOrderDialog: 
   hasUsb: 1
   postDeliveryDialogNodes: []

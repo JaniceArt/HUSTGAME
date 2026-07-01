@@ -118,7 +118,7 @@ public class NormalPhoneCallStep : SequenceStep
         {
             bool isVoiceDone = false;
             // Thoại điện thoại: Bấm chuột đọc bình thường, có thể chọn Choice
-            DialogManager.Instance.StartDialogSequence(phoneVoiceDialog, (result) => { isVoiceDone = true; });
+            DialogManager.Instance.StartDialogSequence(phoneVoiceDialog, (result) => { isVoiceDone = true; }, new Color(0.6f, 0.85f, 1f)); // Màu xanh da trời nhạt cho người gọi
             while (!isVoiceDone) yield return null;
         }
 

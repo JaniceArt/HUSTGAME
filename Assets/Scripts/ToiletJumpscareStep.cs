@@ -231,7 +231,7 @@ public class ToiletJumpscareStep : SequenceStep
 
         if (DialogManager.Instance != null && fatGuyDialogs != null && fatGuyDialogs.Count > 0)
         {
-            DialogManager.Instance.StartDialogSequence(fatGuyDialogs, OnDialogFinished);
+            DialogManager.Instance.StartDialogSequence(fatGuyDialogs, OnDialogFinished, new Color(1f, 0.75f, 0.8f)); // Màu baby pink cho gã béo
         }
         else
         {

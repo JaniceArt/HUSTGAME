@@ -63,6 +63,9 @@ public class Customer : SequenceStep
     [Tooltip("Điểm khách hàng đứng mua hàng (Vd: Trước quầy)")]
     public Transform counterPoint;
 
+    [Header("=== CÀI ĐẶT LUỒNG (SEQUENCE) ===")]
+    private bool hasCalledNextStep = false;
+
     [Tooltip("Tốc độ đi bộ của khách đi VÀO cửa hàng")]
     public float walkSpeedIn = 2.5f;
 
@@ -103,8 +106,13 @@ public class Customer : SequenceStep
         {
             audioSource = gameObject.AddComponent<AudioSource>();
             audioSource.playOnAwake = false;
-            audioSource.spatialBlend = 0f;
         }
+
+        // Cấu hình âm thanh 3D (Nghe theo vị trí khách hàng)
+        audioSource.spatialBlend = 1f; // 1 = 3D
+        audioSource.rolloffMode = AudioRolloffMode.Linear;
+        audioSource.minDistance = 2f;  // Dưới 2m nghe to nhất
+        audioSource.maxDistance = 30f; // Xa 30m là tịt ngòi
 
         if (animator == null || animator.runtimeAnimatorController == null)
         {
@@ -196,9 +204,19 @@ public class Customer : SequenceStep
 
         if (currentState == CustomerState.WalkingIn && counterPoint != null)
         {
-            Vector3 direction = (counterPoint.position - transform.position).normalized;
-            direction.y = 0;
-            if (direction != Vector3.zero) targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+            UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null && agent.velocity.sqrMagnitude > 0.01f)
+            {
+                Vector3 direction = agent.velocity.normalized;
+                direction.y = 0;
+                targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+            }
+            else
+            {
+                Vector3 direction = (counterPoint.position - transform.position).normalized;
+                direction.y = 0;
+                if (direction != Vector3.zero) targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+            }
         }
         else if ((currentState == CustomerState.WaitingToTalk || currentState == CustomerState.WaitingForOrder || currentState == CustomerState.Talking) && counterPoint != null)
         {
@@ -206,12 +224,22 @@ public class Customer : SequenceStep
         }
         else if (currentState == CustomerState.WalkingOut)
         {
-            Transform targetExit = (customExitPoint != null) ? customExitPoint : startPoint;
-            if (targetExit != null)
+            UnityEngine.AI.NavMeshAgent agent = GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (agent != null && agent.velocity.sqrMagnitude > 0.01f)
             {
-                Vector3 direction = (targetExit.position - transform.position).normalized;
+                Vector3 direction = agent.velocity.normalized;
                 direction.y = 0;
-                if (direction != Vector3.zero) targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+                targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+            }
+            else
+            {
+                Transform targetExit = (customExitPoint != null) ? customExitPoint : startPoint;
+                if (targetExit != null)
+                {
+                    Vector3 direction = (targetExit.position - transform.position).normalized;
+                    direction.y = 0;
+                    if (direction != Vector3.zero) targetRotation = Quaternion.LookRotation(direction) * Quaternion.Euler(0, yRotationOffset, 0);
+                }
             }
         }
 
@@ -224,6 +252,13 @@ public class Customer : SequenceStep
     /// </summary>
     public override void StartStep()
     {
+        // Reset state for reuse
+        hasCalledNextStep = false;
+        hasFinishedWalking = false;
+        hasFinishedMonologue = false;
+        HasToldOrder = false;
+        isAngry = false;
+        
         // === TÌM START POINT NẾU CHƯA CÓ ===
         if (startPoint == null)
         {
@@ -484,7 +519,8 @@ public class Customer : SequenceStep
             // Bàn giao toàn bộ kịch bản cho DialogManager xử lý
             DialogManager.Instance.StartDialogSequence(
                 customerData.dialogNodes, 
-                OnDialogFinished
+                OnDialogFinished,
+                new Color(1f, 0.75f, 0.8f) // Màu baby pink cho khách
             );
         }
         else
@@ -761,7 +797,7 @@ public class Customer : SequenceStep
             DialogManager.Instance.StartDialogSequence(nodes, (result) => 
             {
                 ChangeState(CustomerState.WaitingForOrder);
-            });
+            }, new Color(1f, 0.75f, 0.8f)); // Màu baby pink cho khách
         }
         else
         {
@@ -783,7 +819,7 @@ public class Customer : SequenceStep
             DialogManager.Instance.StartDialogSequence(wrongNodes, (result) => 
             {
                 ChangeState(CustomerState.WaitingForOrder);
-            });
+            }, new Color(1f, 0.75f, 0.8f)); // Màu baby pink cho khách
         }
     }
 
@@ -838,7 +874,8 @@ public class Customer : SequenceStep
                 {
                     DialogManager.Instance.StartDialogSequence(
                         customerData.postDeliveryDialogNodes, 
-                        OnPostDialogFinished
+                        OnPostDialogFinished,
+                        new Color(1f, 0.75f, 0.8f) // Màu baby pink cho khách
                     );
                 }
                 else
@@ -938,6 +975,14 @@ public class Customer : SequenceStep
                         rb.AddTorque(Random.insideUnitSphere * 20f, ForceMode.Impulse);
                     }
                 }
+            }
+
+            // --- GỌI SỰ KIỆN TIẾP THEO NGAY LẬP TỨC ---
+            if (!hasCalledNextStep)
+            {
+                hasCalledNextStep = true;
+                Debug.Log($"[Customer] {gameObject.name} nhận đồ xong, CHỐT SỰ KIỆN để gọi sự kiện tiếp theo ngay lập tức!");
+                CompleteStep();
             }
 
             // Hiện vũng nước có sẵn HOẶC Đẻ ra vũng nước mới
@@ -1156,7 +1201,11 @@ public class Customer : SequenceStep
     {
         if (hasFinishedWalking && hasFinishedMonologue)
         {
-            CompleteStep(); // Báo cho SequenceManager biết để gọi sự kiện tiếp theo
+            if (!hasCalledNextStep)
+            {
+                hasCalledNextStep = true;
+                CompleteStep(); // Báo cho SequenceManager biết để gọi sự kiện tiếp theo
+            }
             gameObject.SetActive(false); // Ẩn khách đi
         }
     }
@@ -1169,4 +1218,5 @@ public class Customer : SequenceStep
             ObjectiveManager.Instance.HideObjective();
         }
     }
+
 }

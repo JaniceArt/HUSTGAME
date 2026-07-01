@@ -408,6 +408,10 @@ public class InteractionSystem : MonoBehaviour
                 {
                     maxAllowedDist = 10f; // Loa cho phép bấm từ xa 10 mét
                 }
+                else if (obj.type == InteractableType.Phone)
+                {
+                    maxAllowedDist = 2.5f; // Điện thoại chỉ được bắt máy khi đứng thật gần (2.5 mét)
+                }
 
                 if (hit.distance <= maxAllowedDist && hit.distance < minDistance)
                 {
@@ -600,6 +604,7 @@ public class InteractionSystem : MonoBehaviour
                     if (!PuddleCleaningTaskStep.Instance.IsHoldingBroom) return !IsHoldingAnyDeliverable();
                     return false; // Đang cầm chổi thì không được bấm vào cái chổi nữa (tránh lỗi che camera)
                 }
+                if (Day4EndCutsceneStep.Instance != null && Day4EndCutsceneStep.Instance.isWaitingForBroom) return true;
                 return false;
 
             case InteractableType.Stain:
@@ -755,6 +760,10 @@ public class InteractionSystem : MonoBehaviour
                     if (!PuddleCleaningTaskStep.Instance.IsHoldingBroom) PuddleCleaningTaskStep.Instance.PickUpBroom();
                     else if (PuddleCleaningTaskStep.Instance.AllStainsCleaned) PuddleCleaningTaskStep.Instance.ReturnBroom();
                 }
+                if (Day4EndCutsceneStep.Instance != null && Day4EndCutsceneStep.Instance.isWaitingForBroom)
+                {
+                    Day4EndCutsceneStep.Instance.OnBroomPickedUp();
+                }
                 break;
 
             case InteractableType.BroomArea:
@@ -909,6 +918,7 @@ public class InteractionSystem : MonoBehaviour
             case InteractableType.Broom:
                 if (CleaningTaskStep.Instance != null && CleaningTaskStep.Instance.IsHoldingBroom) return "Cất chổi";
                 if (PuddleCleaningTaskStep.Instance != null && PuddleCleaningTaskStep.Instance.IsHoldingBroom) return "Cất chổi";
+                if (Day4EndCutsceneStep.Instance != null && Day4EndCutsceneStep.Instance.isWaitingForBroom) return "Nhặt chổi";
                 return "Nhặt chổi";
 
             case InteractableType.Printer:
