@@ -15681,7 +15681,6 @@ GameObject:
   - component: {fileID: 657358991}
   - component: {fileID: 657358990}
   - component: {fileID: 657358993}
-  - component: {fileID: 657358994}
   m_Layer: 6
   m_Name: Camera
   m_TagString: Untagged
@@ -15697,14 +15696,14 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 657358988}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.51772827, y: -0.47820368, z: 0.45669216, w: 0.5428729}
-  m_LocalPosition: {x: 505.30594, y: 19.187468, z: -143.12184}
+  m_LocalRotation: {x: 0.015426607, y: 0.82386494, z: -0.022155177, w: 0.566143}
+  m_LocalPosition: {x: 0.83, y: 19.73, z: -0.58}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 713341074}
   m_Father: {fileID: 797326720}
-  m_LocalEulerAnglesHint: {x: 0, y: 95.349, z: 0}
+  m_LocalEulerAnglesHint: {x: 3.094, y: 111.008, z: 0.019}
 --- !u!114 &657358990
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -15825,38 +15824,6 @@ MonoBehaviour:
   blendDistance: 0
   weight: 1
   sharedProfile: {fileID: 11400000, guid: 36956ca70f63d134e8e90c053522994d, type: 2}
---- !u!114 &657358994
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 657358988}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 72ece51f2901e7445ab60da3685d6b5f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Cinemachine::Unity.Cinemachine.CinemachineBrain
-  ShowDebugText: 0
-  ShowCameraFrustum: 1
-  IgnoreTimeScale: 0
-  WorldUpOverride: {fileID: 0}
-  ChannelMask: -1
-  UpdateMethod: 2
-  BlendUpdateMethod: 1
-  LensModeOverride:
-    Enabled: 0
-    DefaultMode: 2
-  DefaultBlend:
-    Style: 1
-    Time: 2
-    CustomCurve:
-      serializedVersion: 2
-      m_Curve: []
-      m_PreInfinity: 2
-      m_PostInfinity: 2
-      m_RotationOrder: 4
-  CustomBlends: {fileID: 0}
 --- !u!1 &660245003
 GameObject:
   m_ObjectHideFlags: 0
@@ -18512,7 +18479,7 @@ Transform:
   m_GameObject: {fileID: 786772968}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7238095, z: -0.68999994, w: 0}
-  m_LocalPosition: {x: 26.66, y: 1.221, z: 7.297}
+  m_LocalPosition: {x: 24.867, y: 0.403, z: 7.297}
   m_LocalScale: {x: 1.1845024, y: 1.184502, z: 1.6251367}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -18987,7 +18954,7 @@ Transform:
   m_GameObject: {fileID: 797326717}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.66564584, z: -0, w: 0.7462678}
-  m_LocalPosition: {x: 15.91, y: 2.95, z: 129.95}
+  m_LocalPosition: {x: 16.08, y: 2.95, z: 130.55}
   m_LocalScale: {x: 0.18525884, y: 0.18525884, z: 0.18525884}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -19704,27 +19671,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SequenceManager
   introCutscene: {fileID: 1154157942}
   days:
-  - dayName: 4
-    dayStart: {fileID: 1958618890}
-    events:
-    - {fileID: 1250388553}
-    - {fileID: 73689808}
-    - {fileID: 1639446619}
-    - {fileID: 1748034141}
-    - {fileID: 1790100805}
-    - {fileID: 1870484183}
-    - {fileID: 1870484183}
-    dayEnd: {fileID: 0}
-  - dayName: 3
-    dayStart: {fileID: 741389469}
-    events:
-    - {fileID: 693160880}
-    - {fileID: 716826421}
-    - {fileID: 1406010930}
-    - {fileID: 1345068085}
-    - {fileID: 1980721341}
-    - {fileID: 59476915}
-    dayEnd: {fileID: 301698491}
   - dayName: 1
     dayStart: {fileID: 750675403}
     events:
@@ -19748,6 +19694,26 @@ MonoBehaviour:
     - {fileID: 1075833229}
     - {fileID: 59476915}
     dayEnd: {fileID: 1261028485}
+  - dayName: 3
+    dayStart: {fileID: 741389469}
+    events:
+    - {fileID: 716826421}
+    - {fileID: 1345068085}
+    - {fileID: 1406010930}
+    - {fileID: 1980721341}
+    - {fileID: 693160880}
+    - {fileID: 59476915}
+    dayEnd: {fileID: 301698491}
+  - dayName: 4
+    dayStart: {fileID: 1958618890}
+    events:
+    - {fileID: 1748034141}
+    - {fileID: 1870484183}
+    - {fileID: 1790100805}
+    - {fileID: 73689808}
+    - {fileID: 1639446619}
+    - {fileID: 1250388553}
+    dayEnd: {fileID: 0}
   startAutomatically: 1
 --- !u!4 &829397764
 Transform:
@@ -24269,7 +24235,7 @@ Transform:
   m_GameObject: {fileID: 1030468501}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: 0.7238095, z: -0.68999994, w: 0}
-  m_LocalPosition: {x: 10.9, y: 1.04, z: 75.72}
+  m_LocalPosition: {x: 10.9, y: 1.04, z: 72.424}
   m_LocalScale: {x: 1.1845024, y: 1.184502, z: 1.6251367}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -24315,7 +24281,7 @@ Light:
   serializedVersion: 12
   m_Type: 2
   m_Color: {r: 0.90943396, g: 0.9065723, b: 0.51992166, a: 1}
-  m_Intensity: 0.99
+  m_Intensity: 3.34
   m_Range: 9.19
   m_SpotAngle: 118.376595
   m_InnerSpotAngle: 0
@@ -24642,7 +24608,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1043942574
 Transform:
   m_ObjectHideFlags: 0
@@ -26211,6 +26177,10 @@ PrefabInstance:
     - target: {fileID: 902537512015860236, guid: 9502a5a601570044d926baab1fe890ba, type: 3}
       propertyPath: m_Name
       value: Shot2
+      objectReference: {fileID: 0}
+    - target: {fileID: 902537512015860236, guid: 9502a5a601570044d926baab1fe890ba, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2100159244429720534, guid: 9502a5a601570044d926baab1fe890ba, type: 3}
       propertyPath: m_Name
@@ -31134,6 +31104,7 @@ MonoBehaviour:
   - sentence: "M\xECnh c\xF3 th\u1EC3 y\xEAn t\xE2m m\xE0 b\xE1n h\xE0ng.."
     hasChoices: 0
     choices: []
+  doorBlocker: {fileID: 0}
   bloodyTextTarget: {fileID: 511333945}
   bloodyTextGraphic: {fileID: 1518919452}
   horrorStingSound: {fileID: 8300000, guid: eefdeed30b5034a4eb6cf0b5f97a9859, type: 3}
@@ -40560,12 +40531,15 @@ MonoBehaviour:
   ghostRunDestination: {fileID: 1370732083}
   ghostRunSpeed: 6
   cutsceneTrigger: {fileID: 1133420923}
-  friendCutscenePrefab: {fileID: 0}
-  cutsceneDuration: 8.47
-  friendCutscenePrefab2: {fileID: 0}
-  cutscene2Duration: 5
+  friendCutscenePrefab: {fileID: 2263790832473068654}
+  cutsceneDuration: 7
+  friendCutscenePrefab2: {fileID: 1650749561}
+  cutscene2Duration: 7
   throwMopSound: {fileID: 8300000, guid: 694d6603d46abe74faf7695c7e6fec52, type: 3}
   throwMopSoundDelay: 3.2
+  throwMopVolumeMultiplier: 3
+  shot2Sound: {fileID: 8300000, guid: 25146f0c4b5914c48bb787d5ba864c53, type: 3}
+  shot2SoundDelay: 0
   isWaitingForBroom: 0
 --- !u!4 &1639446620
 Transform:
@@ -41021,6 +40995,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1649737477}
   m_CullTransparentMesh: 1
+--- !u!1 &1650749561 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 902537512015860236, guid: 9502a5a601570044d926baab1fe890ba, type: 3}
+  m_PrefabInstance: {fileID: 1085998266}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1654103766
 GameObject:
   m_ObjectHideFlags: 0
@@ -42273,6 +42252,7 @@ MonoBehaviour:
   flyInAnimation: FlyIn
   throwSound: {fileID: 8300000, guid: ad2802b784b4949499bbe96036409d10, type: 3}
   throwSoundVolume: 5
+  throwSoundMultiplier: 10
   jumpscareSound: {fileID: 8300000, guid: a7de29d98c725d841aab6cce5ac07df7, type: 3}
   jumpscareSoundVolume: 0.69
   paperImageSprite: {fileID: 21300000, guid: 9f95cc5ee0c76cf48b7396dcef2021da, type: 3}
@@ -42716,7 +42696,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9e2e7047c31666749aff4a05ae907f49, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NormalPhoneCallStep
-  waitBeforeStart: 0
+  waitBeforeStart: 5
   objectiveTitle: 
   autoAdvanceNextStep: 0
   advanceDelay: 0
@@ -55282,7 +55262,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!33 &2344423572970664757
 MeshFilter:
   m_ObjectHideFlags: 0

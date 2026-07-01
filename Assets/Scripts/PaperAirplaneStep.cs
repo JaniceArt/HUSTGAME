@@ -14,7 +14,9 @@ public class PaperAirplaneStep : SequenceStep
     [Header("Âm thanh")]
     [Tooltip("Âm thanh ném giấy bay vào")]
     public AudioClip throwSound; 
-    [Range(0f, 5f)] public float throwSoundVolume = 2f; // Tăng âm lượng lên
+    [Range(0f, 5f)] public float throwSoundVolume = 1f; 
+    [Tooltip("Hệ số khuếch đại âm thanh (kéo lên 3-5 nếu file quá bé)")]
+    [Range(1, 10)] public int throwSoundMultiplier = 3;
 
     [Tooltip("Âm thanh lúc xem giấy (jumpscare)")]
     public AudioClip jumpscareSound; 
@@ -49,7 +51,10 @@ public class PaperAirplaneStep : SequenceStep
         // Khi tờ giấy được bật lên (bởi AutoEventStep), tự động phát âm thanh ném
         if (audioSource != null && throwSound != null)
         {
-            audioSource.PlayOneShot(throwSound, throwSoundVolume);
+            for (int i = 0; i < throwSoundMultiplier; i++)
+            {
+                audioSource.PlayOneShot(throwSound, throwSoundVolume);
+            }
         }
     }
 

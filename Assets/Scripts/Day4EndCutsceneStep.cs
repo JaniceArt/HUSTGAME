@@ -77,12 +77,22 @@ public class Day4EndCutsceneStep : SequenceStep
     [Tooltip("Thời gian độ dài của Cutscene 2 (giây). Hết phim sẽ tự qua ngày 5.")]
     public float cutscene2Duration = 5f;
 
-    [Header("=== ÂM THANH NÉM CHỔI ===")]
-    [Tooltip("Âm thanh lúc ném chổi (sẽ phát trong lúc chiếu Cutscene)")]
+    [Header("=== ÂM THANH NÉM CHỔI (SHOT 1) ===")]
+    [Tooltip("Âm thanh lúc ném chổi (sẽ phát trong lúc chiếu Cutscene 1)")]
     public AudioClip throwMopSound;
     
     [Tooltip("Độ trễ (giây) kể từ lúc phim bắt đầu cho đến khi phát tiếng ném chổi (để căn khớp với hình ảnh)")]
     public float throwMopSoundDelay = 0.5f;
+    
+    [Tooltip("Hệ số khuếch đại âm lượng tiếng ném chổi (kéo lên 3-5 nếu file âm thanh gốc quá bé)")]
+    [Range(1, 10)] public int throwMopVolumeMultiplier = 3;
+
+    [Header("=== ÂM THANH SHOT 2 ===")]
+    [Tooltip("Âm thanh phát trong Shot 2 (VD: tiếng hét, tiếng gõ cửa)")]
+    public AudioClip shot2Sound;
+    
+    [Tooltip("Độ trễ (giây) kể từ lúc Shot 2 BẮT ĐẦU cho đến khi phát âm thanh")]
+    public float shot2SoundDelay = 0f;
 
     public static Day4EndCutsceneStep Instance;
     [HideInInspector] public bool isWaitingForBroom = false;
@@ -459,6 +469,28 @@ public class Day4EndCutsceneStep : SequenceStep
         }
     }
 
+    IEnumerator PlayThrowMopSound()
+    {
+        yield return new WaitForSeconds(throwMopSoundDelay);
+        if (throwMopSound != null && audioSource != null)
+        {
+            // Bơm âm lượng bằng cách phát đè nhiều lớp âm thanh lên nhau
+            for (int i = 0; i < throwMopVolumeMultiplier; i++)
+            {
+                audioSource.PlayOneShot(throwMopSound);
+            }
+        }
+    }
+
+    IEnumerator PlayShot2Sound()
+    {
+        yield return new WaitForSeconds(shot2SoundDelay);
+        if (shot2Sound != null && audioSource != null)
+        {
+            audioSource.PlayOneShot(shot2Sound);
+        }
+    }
+
     private Camera playerCamera; // Lưu lại để bật lại sau
 
     IEnumerator PlayCutsceneRoutine()
@@ -483,10 +515,30 @@ public class Day4EndCutsceneStep : SequenceStep
         // Tắt UI nhiệm vụ
         if (ObjectiveManager.Instance != null) ObjectiveManager.Instance.HideObjective();
 
-        // 1. CHIẾU CUTSCENE 1 (NÉM CHỔI)
+        // LƯU LẠI VỊ TRÍ CAMERA GỐC CỦA PLAYER
+        Camera pCam = Camera.main;
+        if (pCam == null && playerController != null) pCam = playerController.GetComponentInChildren<Camera>(true);
+
+        Vector3 originalCamPos = Vector3.zero;
+        Quaternion originalCamRot = Quaternion.identity;
+        if (pCam != null)
+        {
+            originalCamPos = pCam.transform.localPosition;
+            originalCamRot = pCam.transform.localRotation;
+        }
+
+        // 1. CHIẾU CẢ 2 CUTSCENE CÙNG LÚC (ĐỂ TIMELINE CHẠY ĐỒNG BỘ)
         if (friendCutscenePrefab != null)
         {
             SetupAndPlayCutscene(friendCutscenePrefab);
+            SetVirtualCamerasActive(friendCutscenePrefab, true); // Đảm bảo Camera 1 đang bật
+        }
+
+        if (friendCutscenePrefab2 != null)
+        {
+            SetupAndPlayCutscene(friendCutscenePrefab2);
+            SetVirtualCamerasActive(friendCutscenePrefab2, false); // GIẤU Camera 2 đi, chỉ cho hoạt ảnh chạy ngầm!
+            SetVisualsActive(friendCutscenePrefab2, false); // GIẤU LUÔN CẢ HÌNH ẢNH/ÁNH SÁNG ĐỂ KHÔNG BỊ CHỒNG VÀO SHOT 1
         }
 
         // Bắt đầu hẹn giờ phát tiếng ném chổi
@@ -495,29 +547,70 @@ public class Day4EndCutsceneStep : SequenceStep
             StartCoroutine(PlayThrowMopSound());
         }
 
-        // NGỒI XEM CUTSCENE 1
+        // NGỒI XEM CUTSCENE 1 (Shot 2 vẫn đang âm thầm chạy nền)
         yield return new WaitForSeconds(cutsceneDuration);
 
         // 2. FADE OUT NHẠC NỀN
         if (bgmSource != null && bgmSource.isPlaying)
         {
-            StartCoroutine(CrossfadeMusic(null, 0f, 2f)); // Mượn hàm Crossfade để giảm âm lượng về 0 trong 2 giây
+            StartCoroutine(CrossfadeMusic(null, 0f, 2f)); 
         }
 
-        // 3. TẮT CUTSCENE 1, CHIẾU CUTSCENE 2 (NẾU CÓ)
+        // 3. HẾT SHOT 1 -> TẮT SHOT 1, BẬT CAMERA SHOT 2
         if (friendCutscenePrefab != null) friendCutscenePrefab.SetActive(false);
 
         if (friendCutscenePrefab2 != null)
         {
-            SetupAndPlayCutscene(friendCutscenePrefab2);
+            SetVirtualCamerasActive(friendCutscenePrefab2, true); // BÂY GIỜ MỚI BẬT CAMERA SHOT 2 LÊN!
+            SetVisualsActive(friendCutscenePrefab2, true); // VÀ HIỆN LẠI HÌNH ẢNH CỦA SHOT 2!
+
+            // Bắt đầu đếm ngược phát âm thanh của Shot 2 (Tính từ lúc bắt đầu nhìn thấy Shot 2)
+            if (shot2Sound != null)
+            {
+                StartCoroutine(PlayShot2Sound());
+            }
+
+            // Tiếp tục chờ cho nốt đoạn phim Shot 2 kết thúc
             yield return new WaitForSeconds(cutscene2Duration);
             friendCutscenePrefab2.SetActive(false);
         }
 
-        // 4. HẾT PHIM -> CHUYỂN NGÀY
-        if (Camera.main != null && !Camera.main.enabled)
+        // FADE ĐEN MÀN HÌNH CHUYỂN CẢNH
+        GameObject fadeObj = new GameObject("CutsceneFadeTransition");
+        Canvas fadeCanvas = fadeObj.AddComponent<Canvas>();
+        fadeCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        fadeCanvas.sortingOrder = 999; // Hiển thị trên cùng
+        UnityEngine.UI.Image fadeImage = fadeObj.AddComponent<UnityEngine.UI.Image>();
+        fadeImage.color = new Color(0,0,0,0);
+        
+        float fadeT = 0f;
+        while(fadeT < 1.5f) // Mất 1.5 giây để từ từ mờ đen
         {
-            Camera.main.enabled = true;
+            fadeT += Time.deltaTime;
+            fadeImage.color = new Color(0,0,0, fadeT / 1.5f);
+            yield return null;
+        }
+
+        // GIỮ NGUYÊN MÀN HÌNH ĐEN TRONG 4.5 GIÂY TRƯỚC KHI CHUYỂN CẢNH
+        yield return new WaitForSeconds(4.5f);
+
+        // Đã đen kịt, bắt đầu dọn dẹp Camera và gọi bước tiếp theo
+        if (pCam != null)
+        {
+            if (!pCam.enabled) pCam.enabled = true;
+            
+            // QUAN TRỌNG: XÓA BỎ CINEMACHINE BRAIN ĐỂ TRẢ LẠI QUYỀN ĐIỀU KHIỂN CAMERA CHO PLAYER!
+            Component brain = pCam.GetComponent("CinemachineBrain");
+            if (brain == null) brain = pCam.GetComponent("Cinemachine.CinemachineBrain");
+            if (brain != null) 
+            {
+                ((Behaviour)brain).enabled = false;
+                Destroy(brain);
+            }
+
+            // PHỤC HỒI LẠI VỊ TRÍ CAMERA GỐC CHO PLAYER
+            pCam.transform.localPosition = originalCamPos;
+            pCam.transform.localRotation = originalCamRot;
         }
         
         if (playerController != null)
@@ -533,8 +626,19 @@ public class Day4EndCutsceneStep : SequenceStep
                 renderer.enabled = true;
         }
 
+        // Chuyển sang True Ending ngay trong lúc màn hình đang đen
         FirstPersonController.CanMove = true;
         CompleteStep();
+
+        // TỪ TỪ SÁNG MÀN HÌNH LÊN LẠI (Lúc này True Ending đã bắt đầu chạy)
+        fadeT = 0f;
+        while(fadeT < 1.5f)
+        {
+            fadeT += Time.deltaTime;
+            fadeImage.color = new Color(0,0,0, 1f - (fadeT / 1.5f));
+            yield return null;
+        }
+        Destroy(fadeObj);
     }
 
     private void SetupAndPlayCutscene(GameObject cutscenePrefab)
@@ -571,6 +675,29 @@ public class Day4EndCutsceneStep : SequenceStep
                         if (brainType != null)
                         {
                             cineBrain = mainCam.gameObject.AddComponent(brainType);
+                        }
+                    }
+                }
+
+
+                // Dùng Reflection để ép Default Blend thành Cut (Thời gian = 0) 
+                // Tránh việc Camera bay lung tung giữa 2 shot
+                if (cineBrain != null)
+                {
+                    System.Type brainType = cineBrain.GetType();
+                    System.Reflection.FieldInfo blendField = brainType.GetField("m_DefaultBlend");
+                    if (blendField != null)
+                    {
+                        object blendDef = blendField.GetValue(cineBrain);
+                        if (blendDef != null)
+                        {
+                            System.Type blendDefType = blendDef.GetType();
+                            System.Reflection.FieldInfo timeField = blendDefType.GetField("m_Time");
+                            if (timeField != null)
+                            {
+                                timeField.SetValue(blendDef, 0f);
+                                blendField.SetValue(cineBrain, blendDef); // Gán lại struct
+                            }
                         }
                     }
                 }
@@ -646,13 +773,38 @@ public class Day4EndCutsceneStep : SequenceStep
         }
     }
 
-    IEnumerator PlayThrowMopSound()
+    private void SetVirtualCamerasActive(GameObject prefab, bool isActive)
     {
-        // Chờ đúng thời gian Delay do bạn căn chỉnh trên Inspector
-        yield return new WaitForSeconds(throwMopSoundDelay);
-        if (throwMopSound != null && audioSource != null)
+        if (prefab == null) return;
+        foreach (Transform child in prefab.GetComponentsInChildren<Transform>(true))
         {
-            audioSource.PlayOneShot(throwMopSound, 1f);
+            if (child.name.Contains("CinemachineCamera") || child.GetComponent("CinemachineVirtualCamera") != null || child.GetComponent("CinemachineCamera") != null)
+            {
+                child.gameObject.SetActive(isActive);
+            }
+        }
+    }
+
+    private void SetVisualsActive(GameObject prefab, bool isActive)
+    {
+        if (prefab == null) return;
+        
+        // Tắt/bật toàn bộ hình ảnh (Mesh, SkinnedMesh, Sprite, Particle...)
+        foreach (Renderer r in prefab.GetComponentsInChildren<Renderer>(true))
+        {
+            r.enabled = isActive;
+        }
+        
+        // Tắt/bật toàn bộ ánh sáng
+        foreach (Light l in prefab.GetComponentsInChildren<Light>(true))
+        {
+            l.enabled = isActive;
+        }
+        
+        // Tắt/bật toàn bộ UI
+        foreach (Canvas c in prefab.GetComponentsInChildren<Canvas>(true))
+        {
+            c.enabled = isActive;
         }
     }
 }

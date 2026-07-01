@@ -62,7 +62,8 @@ public class IntroCutsceneStep : SequenceStep
             // Ép hướng nhìn về phía của gameplaySpawnPoint để không bị úp mặt vào tường lúc Cutscene
             if (gameplaySpawnPoint != null)
             {
-                player.transform.rotation = gameplaySpawnPoint.rotation;
+                Vector3 spawnEuler = gameplaySpawnPoint.rotation.eulerAngles;
+                player.transform.rotation = Quaternion.Euler(0, spawnEuler.y, 0);
                 player.xRotation = 0f; // Đưa góc cúi/ngẩng về thẳng đứng
                 
                 Camera cam = player.GetComponentInChildren<Camera>();
@@ -181,7 +182,8 @@ public class IntroCutsceneStep : SequenceStep
                 if (cc != null) cc.enabled = false;
 
                 player.transform.position = gameplaySpawnPoint.position;
-                player.transform.rotation = gameplaySpawnPoint.rotation;
+                Vector3 euler = gameplaySpawnPoint.rotation.eulerAngles;
+                player.transform.rotation = Quaternion.Euler(0, euler.y, 0);
 
                 if (cc != null) cc.enabled = true;
             }

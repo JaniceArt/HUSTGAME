@@ -11,6 +11,9 @@ public class TrueEndingStep : SequenceStep
     [Tooltip("Thoại lầm bầm khi vừa quay về (VD: Phù, cuối cùng cũng cắt đuôi được nó...)")]
     public List<DialogNode> monologue1;
 
+    [Tooltip("Bức tường tàng hình (Collider) chắn cửa để nhốt người chơi trong phòng")]
+    public GameObject doorBlocker;
+
     [Header("=== GIAI ĐOẠN 2: CHỜ NGƯỜI CHƠI TỰ NHÌN VÀO CHỮ MÁU ===")]
     [Tooltip("Kéo vật thể chứa dòng chữ máu trên tường vào đây. Người chơi phải TỰ Xoay mặt nhìn vào đây thì mới hiện thoại.")]
     public Transform bloodyTextTarget;
@@ -70,6 +73,9 @@ public class TrueEndingStep : SequenceStep
         if (bloodyTextGraphic != null) bloodyTextGraphic.SetActive(false);
         else if (bloodyTextTarget != null) bloodyTextTarget.gameObject.SetActive(false);
 
+        // ĐÓNG SẬP CỬA LẠI (Hoặc bật tường tàng hình lên để nhốt người chơi)
+        if (doorBlocker != null) doorBlocker.SetActive(true);
+
         StartCoroutine(EndingSequence());
     }
 
@@ -99,16 +105,18 @@ public class TrueEndingStep : SequenceStep
             cam.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
         }
 
-        // 2. Đọc thoại 1 (Khóa di chuyển)
+        // CHO HIỆN CHỮ MÁU LÊN TƯỜNG SAU LƯNG NGAY LẬP TỨC!
+        // Để lỡ người chơi có xoay chuột nhanh quá thì chữ đã ở đó sẵn rồi.
+        if (bloodyTextGraphic != null) bloodyTextGraphic.SetActive(true);
+        if (bloodyTextTarget != null) bloodyTextTarget.gameObject.SetActive(true);
+
+        // 2. Đọc thoại 1 (Khóa di chuyển, bắt người chơi phải tự bấm phím để qua)
         bool isDialogDone = false;
         if (DialogManager.Instance != null && monologue1 != null && monologue1.Count > 0)
         {
             DialogManager.Instance.StartDialogSequence(monologue1, (result) => { isDialogDone = true; });
             while (!isDialogDone) yield return null;
         }
-
-        // Vừa đọc thoại xong là CHO HIỆN CHỮ MÁU LÊN TƯỜNG SAU LƯNG!
-        if (bloodyTextGraphic != null) bloodyTextGraphic.SetActive(true);
         else if (bloodyTextTarget != null) bloodyTextTarget.gameObject.SetActive(true);
 
         // ================= GIAI ĐOẠN 2: THẢ TỰ DO, ĐỢI NHÌN CHỮ MÁU =================
@@ -171,7 +179,7 @@ public class TrueEndingStep : SequenceStep
         isDialogDone = false;
         if (DialogManager.Instance != null && monologue2 != null && monologue2.Count > 0)
         {
-            DialogManager.Instance.StartDialogSequence(monologue2, (result) => { isDialogDone = true; });
+            DialogManager.Instance.StartAutoDialogSequence(monologue2, (result) => { isDialogDone = true; }, 1f, 3f);
             while (!isDialogDone) yield return null;
         }
 
@@ -248,7 +256,7 @@ public class TrueEndingStep : SequenceStep
         if (endTextFont != null) endText.font = endTextFont;
         else if (DialogManager.Instance != null && DialogManager.Instance.dialogText != null) endText.font = DialogManager.Instance.dialogText.font;
 
-        endText.text = "TRUE ENDING";
+        endText.text = "BAD ENDING";
         endText.color = new Color(0.8f, 0, 0, 0); // Đỏ thẫm, bắt đầu trong suốt
         endText.fontSize = 100;
         endText.fontStyle = TMPro.FontStyles.Bold;
@@ -281,7 +289,7 @@ public class TrueEndingStep : SequenceStep
         yield return new WaitForSeconds(4f); // Đứng nhìn chữ End 4 giây
 
         // Kết thúc
-        Debug.Log("GAME OVER - TRUE ENDING");
+        Debug.Log("GAME OVER - BAD ENDING");
         CompleteStep();
 #if UNITY_EDITOR
         UnityEditor.EditorApplication.isPlaying = false;
