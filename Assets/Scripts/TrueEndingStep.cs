@@ -14,6 +14,8 @@ public class TrueEndingStep : SequenceStep
     [Header("=== GIAI ĐOẠN 2: CHỜ NGƯỜI CHƠI TỰ NHÌN VÀO CHỮ MÁU ===")]
     [Tooltip("Kéo vật thể chứa dòng chữ máu trên tường vào đây. Người chơi phải TỰ Xoay mặt nhìn vào đây thì mới hiện thoại.")]
     public Transform bloodyTextTarget;
+    [Tooltip("Kéo riêng hình ảnh/chữ máu thực tế vào đây để ẩn/hiện (Nếu để trống sẽ tự động dùng Target ở trên)")]
+    public GameObject bloodyTextGraphic;
     [Tooltip("Âm thanh kinh dị giật mình khi VỪA NHÌN THẤY chữ máu")]
     public AudioClip horrorStingSound;
     [Tooltip("Thoại khi nhìn thấy chữ máu (VD: Cái gì thế này... Mình nhớ nãy đâu có...)")]
@@ -38,6 +40,8 @@ public class TrueEndingStep : SequenceStep
     [Header("=== KẾT THÚC ===")]
     [Tooltip("Thời gian đứng hình sợ hãi trước khi kết thúc game (chuyển cảnh/màn hình đen)")]
     public float blackScreenDelay = 4f;
+    [Tooltip("Font chữ rùng rợn cho màn hình True Ending (Để trống sẽ lấy theo font phụ đề)")]
+    public TMPro.TMP_FontAsset endTextFont;
 
     private FirstPersonController playerController;
     private AudioSource audioSource;
@@ -63,7 +67,8 @@ public class TrueEndingStep : SequenceStep
         if (femaleGhostsGroup != null) femaleGhostsGroup.SetActive(false);
         
         // Giấu chữ máu đi trước (để lúc đầu quay mặt vào không thấy)
-        if (bloodyTextTarget != null) bloodyTextTarget.gameObject.SetActive(false);
+        if (bloodyTextGraphic != null) bloodyTextGraphic.SetActive(false);
+        else if (bloodyTextTarget != null) bloodyTextTarget.gameObject.SetActive(false);
 
         StartCoroutine(EndingSequence());
     }
@@ -81,12 +86,17 @@ public class TrueEndingStep : SequenceStep
             // Dịch chuyển cơ thể
             playerController.transform.position = playerStartPoint.position;
             
-            // Ép góc nhìn Camera (Rot X và Y)
-            cam.transform.rotation = playerStartPoint.rotation;
-            
             // Ép cả góc xoay Y của cơ thể Player để đồng bộ
             Vector3 euler = playerStartPoint.rotation.eulerAngles;
             playerController.transform.rotation = Quaternion.Euler(0, euler.y, 0);
+
+            // QUAN TRỌNG: Đồng bộ lại biến xRotation của chuột để khi mở khóa không bị giật về góc cũ!
+            float pitch = euler.x;
+            if (pitch > 180f) pitch -= 360f;
+            playerController.xRotation = pitch;
+            
+            // Ép Camera local y hệt như những gì FirstPersonController sẽ làm khi mở khóa
+            cam.transform.localRotation = Quaternion.Euler(pitch, 0f, 0f);
         }
 
         // 2. Đọc thoại 1 (Khóa di chuyển)
@@ -98,7 +108,8 @@ public class TrueEndingStep : SequenceStep
         }
 
         // Vừa đọc thoại xong là CHO HIỆN CHỮ MÁU LÊN TƯỜNG SAU LƯNG!
-        if (bloodyTextTarget != null) bloodyTextTarget.gameObject.SetActive(true);
+        if (bloodyTextGraphic != null) bloodyTextGraphic.SetActive(true);
+        else if (bloodyTextTarget != null) bloodyTextTarget.gameObject.SetActive(true);
 
         // ================= GIAI ĐOẠN 2: THẢ TỰ DO, ĐỢI NHÌN CHỮ MÁU =================
         // 3. Mở khóa cho người chơi di chuyển
@@ -122,11 +133,41 @@ public class TrueEndingStep : SequenceStep
             yield return null;
         }
 
+        // KHÓA DI CHUYỂN ĐỂ ÉP NHÌN VÀO CHỮ MÁU
+        FirstPersonController.CanMove = false;
+
+        // ÉP CAMERA NHÌN THẲNG VÀO CHỮ MÁU
+        if (cam != null && bloodyTextTarget != null)
+        {
+            Quaternion startRot = cam.transform.rotation;
+            Quaternion targetRot = Quaternion.LookRotation(bloodyTextTarget.position - cam.transform.position);
+            
+            float elapsed = 0f;
+            while (elapsed < 0.5f) // Xoay mượt trong 0.5 giây
+            {
+                elapsed += Time.deltaTime;
+                float t = elapsed / 0.5f;
+                cam.transform.rotation = Quaternion.Slerp(startRot, targetRot, t);
+                yield return null;
+            }
+            cam.transform.rotation = targetRot;
+
+            // Đồng bộ lại xRotation cho controller (dù không mở khóa nhưng cho chắc cú)
+            Vector3 finalEuler = cam.transform.rotation.eulerAngles;
+            float pitch = finalEuler.x;
+            if (pitch > 180f) pitch -= 360f;
+            playerController.xRotation = pitch;
+        }
+
         // Vừa nhìn thấy là phát tiếng giật mình
         if (horrorStingSound != null) audioSource.PlayOneShot(horrorStingSound);
 
-        // Khóa lại 1 chút để đọc thoại
-        FirstPersonController.CanMove = false;
+        // CHO MA NỮ XUẤT HIỆN SẴN Ở CỬA NGAY TỪ BÂY GIỜ (Dù người chơi đang nhìn tường chữ)
+        if (femaleGhostsGroup != null) femaleGhostsGroup.SetActive(true);
+
+        // TẮT CHỨC NĂNG TỰ ĐỘNG MỞ KHÓA CỦA DIALOG MANAGER VÌ MÌNH SẼ KHÓA TỚI CUỐI GAME
+        if (DialogManager.Instance != null) DialogManager.Instance.UnlockPlayerOnComplete = false;
+
         isDialogDone = false;
         if (DialogManager.Instance != null && monologue2 != null && monologue2.Count > 0)
         {
@@ -134,32 +175,8 @@ public class TrueEndingStep : SequenceStep
             while (!isDialogDone) yield return null;
         }
 
-
-        // ================= GIAI ĐOẠN 3: ĐỢI QUAY NGƯỢC LẠI =================
-        // 5. Thả tự do lần nữa
-        FirstPersonController.CanMove = true;
-
-        // 6. Chờ người chơi QUAY LƯNG LẠI với bức tường chữ (Quay ngược lại)
-        bool hasTurnedBack = false;
-        while (!hasTurnedBack)
-        {
-            if (cam != null && bloodyTextTarget != null)
-            {
-                Vector3 dirToText = (bloodyTextTarget.position - cam.transform.position).normalized;
-                float angle = Vector3.Angle(cam.transform.forward, dirToText);
-                
-                // Nếu góc nhìn lệch khỏi chữ máu hơn 100 độ (nghĩa là đã quay lưng / quay đi chỗ khác)
-                if (angle > 100f)
-                {
-                    hasTurnedBack = true;
-                }
-            }
-            yield return null;
-        }
-
         // ================= KỊCH TÍNH CUỐI CÙNG (ÉP BẺ CỔ RA CỬA) =================
-        // KHÓA DI CHUYỂN NGAY LẬP TỨC ĐỂ DỌA
-        FirstPersonController.CanMove = false;
+        // KHÔNG THẢ TỰ DO NỮA, ĐỌC THOẠI XONG LÀ SẬP NGUỒN VÀ BẺ CỔ LUÔN!
 
         // VỪA QUAY LƯNG LÀ TẮT ĐÈN (CHỈ TẮT NHỮNG ĐÈN TRONG DANH SÁCH BẠN KÉO VÀO)
         if (powerOffSound != null) audioSource.PlayOneShot(powerOffSound);
@@ -197,15 +214,79 @@ public class TrueEndingStep : SequenceStep
             cam.transform.rotation = targetRot;
         }
 
-        // 5. Quay ra cửa thì thót tim: DÀN MA NỮ XUẤT HIỆN Ở CỬA
-        if (femaleGhostsGroup != null) femaleGhostsGroup.SetActive(true);
+        // 5. Quay ra cửa thì thót tim (Bầy ma đã đứng chờ sẵn vì bật từ bước trước rồi)
         if (finalJumpscareSound != null) audioSource.PlayOneShot(finalJumpscareSound);
 
-        // 6. Đứng hình đối mặt với dàn ma nữ 4 giây trước khi hết game
+        // Bật lại chức năng mở khóa của DialogManager cho các màn sau (nếu có)
+        if (DialogManager.Instance != null) DialogManager.Instance.UnlockPlayerOnComplete = true;
+
+        // 6. Đứng hình đối mặt với dàn ma nữ X giây (chạy nhạc)
         yield return new WaitForSeconds(blackScreenDelay);
 
-        // TODO: Chuyển cảnh sang Credit hoặc Đen màn hình (Game Over)
+        // 7. FADE ĐEN MÀN HÌNH VÀ HIỆN CHỮ END
+        GameObject canvasObj = new GameObject("EndGameCanvas");
+        Canvas canvas = canvasObj.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 9999;
+        canvasObj.AddComponent<UnityEngine.UI.CanvasScaler>();
+        canvasObj.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
+        GameObject bgObj = new GameObject("BlackBackground");
+        bgObj.transform.SetParent(canvasObj.transform, false);
+        UnityEngine.UI.Image bgImage = bgObj.AddComponent<UnityEngine.UI.Image>();
+        bgImage.color = new Color(0, 0, 0, 0); // Bắt đầu trong suốt
+        RectTransform bgRect = bgObj.GetComponent<RectTransform>();
+        bgRect.anchorMin = Vector2.zero;
+        bgRect.anchorMax = Vector2.one;
+        bgRect.sizeDelta = Vector2.zero;
+
+        GameObject textObj = new GameObject("TheEndText");
+        textObj.transform.SetParent(canvasObj.transform, false);
+        TMPro.TextMeshProUGUI endText = textObj.AddComponent<TMPro.TextMeshProUGUI>();
+        
+        // Cài đặt Font chữ
+        if (endTextFont != null) endText.font = endTextFont;
+        else if (DialogManager.Instance != null && DialogManager.Instance.dialogText != null) endText.font = DialogManager.Instance.dialogText.font;
+
+        endText.text = "TRUE ENDING";
+        endText.color = new Color(0.8f, 0, 0, 0); // Đỏ thẫm, bắt đầu trong suốt
+        endText.fontSize = 100;
+        endText.fontStyle = TMPro.FontStyles.Bold;
+        endText.alignment = TMPro.TextAlignmentOptions.Center;
+        RectTransform textRect = textObj.GetComponent<RectTransform>();
+        textRect.anchorMin = Vector2.zero;
+        textRect.anchorMax = Vector2.one;
+        textRect.sizeDelta = Vector2.zero;
+
+        // Tối dần màn hình trong 2.5 giây
+        float fadeElapsed = 0f;
+        while (fadeElapsed < 2.5f)
+        {
+            fadeElapsed += Time.deltaTime;
+            bgImage.color = new Color(0, 0, 0, Mathf.Clamp01(fadeElapsed / 2.5f));
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(1f);
+
+        // Hiện dần chữ TRUE ENDING trong 3 giây
+        fadeElapsed = 0f;
+        while (fadeElapsed < 3f)
+        {
+            fadeElapsed += Time.deltaTime;
+            endText.color = new Color(0.8f, 0, 0, Mathf.Clamp01(fadeElapsed / 3f));
+            yield return null;
+        }
+
+        yield return new WaitForSeconds(4f); // Đứng nhìn chữ End 4 giây
+
+        // Kết thúc
         Debug.Log("GAME OVER - TRUE ENDING");
         CompleteStep();
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
+        Application.Quit();
+#endif
     }
 }
